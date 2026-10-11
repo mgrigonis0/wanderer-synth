@@ -1,6 +1,6 @@
 # Wanderer: handoff (state as of 2026-10-11)
 
-Read this first in a new chat. The latest source of every device file is in this project under `wanderer/src/`. The simulation tools are under `wanderer/sim/`. These copies are what the user is running in Live now: voice engine **2026-10-08f** and brain **2026-10-08f**.
+Read this first in a new chat. **GitHub:** https://github.com/mgrigonis0/wanderer-synth (`device/`, `docs/`, `sim/`): commit each build there too. The latest source of every device file is in this project under `wanderer/src/`. The simulation tools are under `wanderer/sim/`. These copies are what the user is running in Live now: voice engine **2026-10-08f** and brain **2026-10-08f**.
 
 ---
 
