@@ -1,0 +1,12 @@
+global.samplerate=44100; global.pi=Math.PI; global.twopi=2*Math.PI;
+const B={}; global.B=B;
+global.BUF=n=>{ if(!B[n]) B[n]={frames:0,ch:1,d:null}; return B[n]; };
+global.DATA=(n,c)=>({frames:n,ch:c,d:new Float64Array(n*c)});
+global.peek=(b,i,c)=>{ i=Math.floor(i); if(!b.d||i<0||i>=b.frames||c>=b.ch) return 0; return b.d[i*b.ch+c]; };
+global.poke=(b,v,i,c)=>{ i=Math.floor(i); if(!b.d||i<0||i>=b.frames||c>=b.ch) return; b.d[i*b.ch+c]=v; };
+global.clamp=(x,a,b)=>Math.min(b,Math.max(a,x)); global.mix=(a,b,t)=>a+(b-a)*t; global.fract=x=>x-Math.floor(x);
+global.wrap=(x,lo,hi)=>{const r=hi-lo; return lo+((x-lo)%r+r)%r;};
+['floor','ceil','abs','min','max','pow','exp','log2','sin','cos','tan','sqrt'].forEach(f=>global[f]=Math[f]);
+global.dbtoa=x=>Math.pow(10,x/20); global.exp2=x=>Math.pow(2,x); global.channels=b=>b.ch; global.dim=b=>b.frames;
+global.alloc=(n,frames,ch)=>{const b=BUF(n); b.frames=frames; b.ch=ch; b.d=new Float64Array(frames*ch); return b;};
+global.isnan=x=>Number.isNaN(x)?1:0;
