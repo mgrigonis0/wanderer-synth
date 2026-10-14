@@ -23,7 +23,7 @@ Global: Macro, Chaos, Density, Pitch, Scale, Mutate, Quant + Hits grid, Length, 
 
 ## Decisions (and why)
 - Rebuild from scratch, keeping the 10-12e behaviour as the spec: the user likes what it does; the internals and UI grew irregular.
-- No FluCoMa (pending the user's final "go"): own Hits (loudness jumps) and Notes (spectral flux) detection in chunked JS; no install, and the stuck analysis queue goes away.
+- No FluCoMa (agreed 2026-10-14): own Hits (loudness jumps) and Notes (spectral flux) detection in chunked JS; no install, and the stuck analysis queue goes away.
 - No C++ externals: gen~ is already native; unsigned Mac externals need Xcode builds plus `xattr`/signing on every machine.
 - Delivered in stages, each tested in Live: 1 engine + brain with a plain UI, 2 the new UI.
 - Lock patterns: brain writes the idle bank and counts a request up; engine swaps once per new number (gen~ in Live drops writes inside `if`).
@@ -43,4 +43,4 @@ Global: Macro, Chaos, Density, Pitch, Scale, Mutate, Quant + Hits grid, Length, 
 - UI outdated after many additions and removals.
 
 ## Next step
-Waiting on the user: confirm built-in detection, and ideally attach 2–3 real files (one drum loop, one or two melodic) to tune Notes. Then stage 1: new `devices/wanderer/Wanderer/` folder with engine, brain, saving, detection, no-crosstalk naming and a plain UI; sim-check, push, user tests in Live. Stage 2: new UI design (mockup first).
+Optional before stage 1: the user may attach 2–3 real files (one drum loop, one or two melodic) to tune Notes. Then stage 1: new `devices/wanderer/Wanderer/` folder with engine, brain, saving, detection, no-crosstalk naming and a plain UI; sim-check, push, user tests in Live. Stage 2: new UI design (mockup first).
