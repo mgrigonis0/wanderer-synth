@@ -13,6 +13,7 @@ Stable rules for every device in this repo. Device-specific state lives in `devi
 ## Working with the user
 
 - Discuss and propose first; build only after an explicit "go".
+- The UI comes first: show a mockup of how the device will look and get it approved before any final build.
 - Explain in plain words with small examples.
 - Keep Live test requests minimal: simulate first; ask for a Live test only when nothing else can tell (e.g. gen~ compiling silently to zero).
 - Commit every build to GitHub; push when the user agrees.

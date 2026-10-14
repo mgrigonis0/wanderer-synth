@@ -43,4 +43,6 @@ Global: Macro, Chaos, Density, Pitch, Scale, Mutate, Quant + Hits grid, Length, 
 - UI outdated after many additions and removals.
 
 ## Next step
-Optional before stage 1: the user may attach 2–3 real files (one drum loop, one or two melodic) to tune Notes. Then stage 1: new `devices/wanderer/Wanderer/` folder with engine, brain, saving, detection, no-crosstalk naming and a plain UI; sim-check, push, user tests in Live. Stage 2: new UI design (mockup first).
+1. UI mockup of the whole device (Live's device height is fixed at 169 px), approved by the user before anything is built.
+2. Build engine, brain, saving, detection, no-crosstalk naming and the approved UI in `devices/wanderer/Wanderer/`; sim-check, push, user tests in Live.
+Optional: the user may attach 2–3 real files (one drum loop, one or two melodic) to tune Notes detection.
