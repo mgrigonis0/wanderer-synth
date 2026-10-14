@@ -28,11 +28,11 @@ var FLENS = [0.25, 0.5, 1, 2, 4, 8];
 var P = [
 	{"k":"dens","tab":"clock","type":"knob","def":50,"lo":0,"hi":100,"ex":1,"rnd":[0.15,0.85]},
 	{"k":"cont","tab":"clock","type":"knob","def":0,"lo":-100,"hi":100,"ex":1,"rnd":[0.2,0.8]},
-	{"k":"swing","tab":"clock","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.6]},
-	{"k":"nudge","tab":"clock","type":"knob","def":0,"lo":-30,"hi":30,"ex":1,"rnd":[0.4,0.6]},
+	{"k":"swing","tab":"clock","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.6],"steady":1},
+	{"k":"nudge","tab":"clock","type":"knob","def":0,"lo":-30,"hi":30,"ex":1,"dead":1},
 	{"k":"spread","tab":"slice","type":"knob","def":30,"lo":0,"hi":100,"ex":1,"rnd":[0,1]},
 	{"k":"wstr","tab":"slice","type":"knob","def":100,"lo":0,"hi":100,"ex":1,"rnd":[0,1]},
-	{"k":"jump","tab":"slice","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.15]},
+	{"k":"jump","tab":"slice","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"dead":1},
 	{"k":"start","tab":"play","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.3]},
 	{"k":"length","tab":"play","type":"knob","def":100,"lo":1,"hi":100,"ex":1,"rnd":[0.4,1]},
 	{"k":"rev","tab":"play","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.25]},
@@ -57,15 +57,15 @@ var P = [
 	{"k":"rshape","tab":"repeat","type":"knob","def":0,"lo":-100,"hi":100,"ex":1,"rnd":[0,1]},
 	{"k":"rvol","tab":"repeat","type":"knob","def":-40,"lo":-100,"hi":100,"ex":1,"rnd":[0,0.6]},
 	{"k":"rstep","tab":"repeat","type":"knob","def":0,"lo":-7,"hi":7,"ex":1,"rnd":[0.3,0.7]},
-	{"k":"rsame","tab":"repeat","type":"knob","def":100,"lo":0,"hi":100,"ex":1,"rnd":[0,1]},
-	{"k":"rvar","tab":"repeat","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"rnd":[0,0.6]},
+	{"k":"rsame","tab":"repeat","type":"knob","def":100,"lo":0,"hi":100,"ex":1,"dead":1},
+	{"k":"rvar","tab":"repeat","type":"knob","def":0,"lo":0,"hi":100,"ex":1,"dead":1},
 	{"k":"gsize","tab":"grain","type":"knob","def":80,"lo":10,"hi":500,"ex":2,"rnd":[0.25,1]},
 	{"k":"gdens","tab":"grain","type":"knob","def":2,"lo":1,"hi":4,"ex":1,"rnd":[0,1]},
 	{"k":"scan","tab":"grain","type":"knob","def":100,"lo":0,"hi":200,"ex":1,"rnd":[0.25,0.75]},
 	{"k":"gjit","tab":"grain","type":"knob","def":10,"lo":0,"hi":100,"ex":1,"rnd":[0,0.6]},
 	{"k":"gspread","tab":"grain","type":"knob","def":0,"lo":0,"hi":12,"ex":1,"rnd":[0,0.15]},
-	{"k":"v1","tab":"clock","type":"toggle","def":0,"odds":0.1},
-	{"k":"v2","tab":"clock","type":"toggle","def":0,"odds":0.15},
+	{"k":"v1","tab":"clock","type":"toggle","def":0,"odds":0.05},
+	{"k":"v2","tab":"clock","type":"toggle","def":0,"odds":0.08},
 	{"k":"v4","tab":"clock","type":"toggle","def":0,"odds":0.35},
 	{"k":"v8","tab":"clock","type":"toggle","def":1,"odds":0.55},
 	{"k":"v16","tab":"clock","type":"toggle","def":1,"odds":0.6},
@@ -73,19 +73,22 @@ var P = [
 	{"k":"trip","tab":"clock","type":"toggle","def":0,"odds":0.2},
 	{"k":"dot","tab":"clock","type":"toggle","def":0,"odds":0.2},
 	{"k":"derived","tab":"clock","type":"toggle","def":0,"odds":0.25},
-	{"k":"smode","tab":"slice","type":"enum","def":0,"items":["Random","Walk","Skip","Weighted","Position"]},
-	{"k":"choke","tab":"slice","type":"toggle","def":1,"odds":0.8},
+	{"k":"smode","tab":"slice","type":"enum","def":0,"items":["Random","Walk","Weighted","Position"]},
+	{"k":"choke","tab":"slice","type":"toggle","def":0,"odds":0,"dead":1},
 	{"k":"engine","tab":"pitch","type":"enum","def":0,"items":["Tape","Grain"],"w":[0.75,0.25]},
 	{"k":"ftype","tab":"filter","type":"enum","def":0,"items":["LP","HP","BP"],"w":[0.7,0.15,0.15]},
-	{"k":"rspace","tab":"repeat","type":"enum","def":1,"items":["1/16","1/32","1/64","1/16T","1/32T"],"w":[0.4,0.35,0,0.125,0.125]},
-	{"k":"wsrc","tab":"slice","type":"enum","def":0,"items":["Manual","Loud","Quiet","Long","Short","Bright","Dark"]},
-	{"k":"method","tab":"detect","type":"enum","def":0,"items":["Hits","Soft","Pitch","Harmony","Timbre","Silence","Grid"]},
+	{"k":"rspace","tab":"repeat","type":"enum","def":0,"items":["1/32","1/64","1/32T"],"w":[0.55,0.2,0.25]},
+	{"k":"wsrc","tab":"slice","type":"enum","def":0,"items":["Manual"],"dead":1},
+	{"k":"method","tab":"detect","type":"enum","def":0,"items":["Hits","Notes"]},
 	{"k":"sens","tab":"detect","type":"knob","def":25,"lo":0,"hi":100,"ex":1},
 	{"k":"minlen","tab":"detect","type":"knob","def":100,"lo":10,"hi":1000,"ex":2},
 	{"k":"ftvar","tab":"filter","type":"knob0","def":0,"lo":0,"hi":100,"ex":1,"buf":60,"rnd":[0,0.5],"rodds":0.35},
-	{"k":"chokep","tab":"slice","type":"knob0","def":100,"lo":0,"hi":100,"ex":1,"buf":61}
+	{"k":"chokep","tab":"slice","type":"knob0","def":0,"lo":0,"hi":100,"ex":1,"buf":61,"dead":1}
 ];
 // each P[i].def is read as P[i].def below
+// "dead": removed from the device (Nudge, Jump, repeat Same/Vary, Choke, weight sources). The slot stays so
+//   saved sets and the engine's buffer layout keep their indices; the value is held at its default.
+// "steady": one value per file, no per-hit range (Swing).
 
 var KEY = {};
 for (var i = 0; i < P.length; i++) { KEY[P[i].k] = i; }
@@ -101,7 +104,8 @@ var sel = 0;
 var curTab = 0;
 var curTempo = 120;
 var pat = this.patcher;
-var glockOn = 0;
+var gLock = 0;        // global Free/Lock switch, last value (saved; each file can still be switched on its own)
+var gDens = 0, gTrip = 1, gDot = 1;   // global Density and Allow Trip/Dot, mirrored for pattern generation
 var slots = [null, null, null, null, null, null, null, null];
 var curSlot = 0;
 var slideIdx = 0;
@@ -113,6 +117,24 @@ var lastSaved = "";
 var mSens = 0;        // master sensitivity offset, -50..50 (added to each file)
 var mLen = 1;         // master min-length multiplier, 0.25..4
 var chaosV = 50;      // Chaos, mirrored here for the slicing ranges
+var gMethod = 0;      // global slicing switch: 0 Hits, 1 Notes (saved; a file can still be set on its own)
+
+// global Hits / Notes: sets every file and re-slices them. A value equal to the last one is ignored, so
+// Live restoring the switch at load never overrides files that were set on their own.
+function gmethod(v) {
+	v = v ? 1 : 0;
+	if (!ready) { gMethod = v; return; }
+	if (v === gMethod) { return; }
+	gMethod = v;
+	for (var f = 0; f < NF; f++) {
+		files[f].b[KEY.method] = v;
+		writeParam(f, KEY.method, 3);
+		if (files[f].loaded) { detectPending[f] = 1; }
+	}
+	runDetect();
+	refreshPanel();
+	dirty();
+}
 
 function chaos(v) { chaosV = clamp(v, 0, 100); }
 
@@ -141,6 +163,20 @@ function clamp(x, lo, hi) { return x < lo ? lo : (x > hi ? hi : x); }
 function round4(x) { return Math.round(x * 10000) / 10000; }
 function norm(p, v) { var q = P[p]; return Math.pow(clamp((v - q.lo) / (q.hi - q.lo), 0, 1), 1 / q.ex); }
 function denorm(p, n) { var q = P[p]; return q.lo + (q.hi - q.lo) * Math.pow(clamp(n, 0, 1), q.ex); }
+function fixParams(b, r, m) {
+	for (var p = 0; p < P.length; p++) {
+		if (P[p].dead) { b[p] = isKnob(p) ? norm(p, P[p]["def"]) : P[p]["def"]; r[p] = 0; m[p] = 0; }
+		else if (P[p].steady) { r[p] = 0; m[p] = 0; }
+	}
+}
+// sets saved before 2026-10-11: old menu positions mapped onto the new, shorter menus
+var MIGRATE = { smode: [0, 1, 1, 2, 3], rspace: [0, 0, 1, 2, 2], method: [0, 1, 1, 1, 1, 0, 0] };
+function migrateParams(b) {
+	for (var k in MIGRATE) {
+		var p = KEY[k], o = Math.round(b[p] || 0);
+		b[p] = MIGRATE[k][clamp(o, 0, MIGRATE[k].length - 1)];
+	}
+}
 function isKnob(p) { return P[p].type === "knob" || P[p].type === "knob0"; }
 function audioName(f) { return rt + "w" + (f + 1); }
 
@@ -211,9 +247,10 @@ function init() {
 		writeCtl(f);
 	}
 	ready = true;
-	post("wanderer: ready (brain 2026-10-08f)\n");
+	post("wanderer: ready (brain 2026-10-12e)\n");
 	var pobj = pat.getnamed("panel");
 	if (pobj) { pobj.message("offset", -curTab * PAGEW, 0); }
+	refreshTabs();
 	if (pendingRestore) {
 		var d = pendingRestore;
 		pendingRestore = null;
@@ -351,7 +388,7 @@ function evenGain(rms) {
 // weight per slice for the chosen source, 0..1
 function weights(f) {
 	var fl = files[f];
-	var src = fl.b[KEY.wsrc];
+	var src = 0;   // weights are drawn by hand; the automatic sources are gone
 	var raw = [];
 	for (var i = 0; i < fl.ns; i++) {
 		var len = fl.ends[i] - fl.starts[i];
@@ -383,6 +420,7 @@ function v(key, val) { setValue(key, "b", val); }
 function setValue(key, what, val) {
 	var p = KEY[key];
 	if (p === undefined || !ready) { return; }
+	if (P[p].dead || (P[p].steady && what !== "b")) { return; }
 	var fl = files[sel];
 	if (what === "b") { fl.b[p] = isKnob(p) ? norm(p, val) : Math.round(val); }
 	else if (what === "r") { fl.r[p] = clamp(val / 100, 0, 1); }
@@ -398,9 +436,23 @@ function tab(i) {
 	curTab = clamp(Math.round(i), 0, TABS.length - 1);
 	if (!ready) { return; }
 	var obj = pat.getnamed("panel");
-	if (obj) { obj.message("offset", -i * PAGEW, 0); }
+	if (obj) { obj.message("offset", -curTab * PAGEW, 0); }
 	refreshPanel();
+	refreshTabs();
 }
+
+// the tab buttons act like one row of tabs; Rnd and its depth dial act on the visible tab
+function tabbtn(n, v) {
+	if (v) { tab(n); } else { refreshTabs(); }   // clicking the open tab again keeps it open
+}
+function refreshTabs() {
+	for (var k = 0; k < TABS.length; k++) { setUI(pat, "tab" + k, k === curTab ? 1 : 0); }
+	setUI(pat, "tabdepth", depthOf(TABS[curTab]) * 100);
+	var dz = pat.getnamed("tabdice");
+	if (dz) { dz.message("active", TABS[curTab] === "detect" ? 0 : 1); }   // Random never changes the slicing
+}
+function dicecur(v) { if (TABS[curTab] !== "detect") { dice(TABS[curTab], v); } }
+function rdepthcur(v) { rdepth(TABS[curTab], v); dirty(); }
 
 // ---------- file slots ---------------------------------------------------
 function select(n) {
@@ -500,7 +552,7 @@ function fclear(v) {
 	fl.gen = (fl.gen || 0) + 1;
 	resetRetry(fl);
 	dequeue(sel);
-	bufCF.poke(1, sel * CTL + 16, [0, 0, 0, 0]);   // no locked list left behind
+	writePattern(sel, EMPTY_PAT, 0);   // no locked list left behind
 	writeCtl(sel);
 	refreshStrip();
 	outlet(0, "target", sel + 1);
@@ -590,42 +642,20 @@ function runQueue() {
 	var minsamps = Math.round(minms * fl.sr / 1000);
 	var minhops = Math.max(1, Math.round(minsamps / 512));
 	var src = audioName(busy);
-	if (method === 6) {
-		// Grid: equal divisions, no external analysis
-		var n = Math.round(2 + sens * 62);
-		var on = [];
-		for (var i = 0; i < n; i++) { on.push(Math.floor(i * fl.frames / n)); }
-		busyTask.cancel();
-		finishSlicing(busy, on);
-		busy = -1;
-		runQueue();
-		return;
-	}
 	if (method === 0) {
+		// Hits: loudness jumps (drums, percussion)
 		outlet(1, "ampslice", "source", src);
 		outlet(1, "ampslice", "onthreshold", 18 - sens * 15);
 		outlet(1, "ampslice", "offthreshold", 9 - sens * 7.5);
 		outlet(1, "ampslice", "minslicelength", minsamps);
 		outlet(1, "ampslice", "bang");
-	} else if (method === 1) {
+	} else {
+		// Notes: spectral change (melodic material: new notes without a loudness jump)
 		outlet(1, "onset", "source", src);
 		outlet(1, "onset", "metric", 8);
 		outlet(1, "onset", "threshold", 0.6 * Math.pow(1 - sens, 2) + 0.02);
 		outlet(1, "onset", "minslicelength", minhops);
 		outlet(1, "onset", "bang");
-	} else if (method <= 4) {
-		outlet(1, "novelty", "source", src);
-		outlet(1, "novelty", "algorithm", method === 2 ? 3 : (method === 3 ? 2 : 1));
-		outlet(1, "novelty", "kernelsize", 9);
-		outlet(1, "novelty", "threshold", 0.8 * Math.pow(1 - sens, 2) + 0.02);
-		outlet(1, "novelty", "minslicelength", minhops);
-		outlet(1, "novelty", "bang");
-	} else {
-		outlet(1, "ampgate", "source", src);
-		outlet(1, "ampgate", "onthreshold", -20 - sens * 35);
-		outlet(1, "ampgate", "offthreshold", -26 - sens * 35);
-		outlet(1, "ampgate", "minslicelength", minsamps);
-		outlet(1, "ampgate", "bang");
 	}
 }
 
@@ -661,10 +691,8 @@ function finishSlicing(f, on) {
 		var s = on[i];
 		if (s > 0 && s < fl.frames - 64 && s - starts[starts.length - 1] >= minsamps) { starts.push(s); }
 	}
-	if (fl.b[KEY.method] !== 6) {   // Grid keeps its equal divisions
-		starts = refineCuts(f, starts);
-		starts = dropQuietCuts(f, starts);
-	}
+	starts = refineCuts(f, starts);
+	starts = dropQuietCuts(f, starts);
 	if (starts.length > MAXS) { starts.length = MAXS; }
 	if (retrySlicing(f, starts)) { return; }   // too few slices: another attempt is on its way
 	if (fl.retryBest && fl.retryBest.length > starts.length) { starts = fl.retryBest; }
@@ -708,15 +736,14 @@ function finishSlicing(f, on) {
 }
 
 // fewer than 4 slices: try again with higher sensitivity (+25, +50), then with the other
-// detection methods; the attempt with the most slices wins. Grid is never used as a fallback.
+// method (Hits <-> Notes); the attempt with the most slices wins.
 var RETRY_MIN = 4;
 function retrySlicing(f, starts) {
 	var fl = files[f];
 	var base = fl.b[KEY.method];
-	if (base === 6 || starts.length >= RETRY_MIN) { return false; }
+	if (starts.length >= RETRY_MIN) { return false; }
 	if (!fl.retryBest || starts.length > fl.retryBest.length) { fl.retryBest = starts.slice(); }
-	var alts = [0, 1, 2].filter(function (m) { return m !== base; });
-	var steps = [[25, -1], [50, -1], [50, alts[0]], [50, alts[1]]];
+	var steps = [[25, -1], [50, -1], [50, base === 0 ? 1 : 0]];
 	var k = fl.retry || 0;
 	if (k >= steps.length) { return false; }
 	fl.retry = k + 1;
@@ -878,42 +905,239 @@ function sliceweight(i, w) {
 }
 
 // ---------- file strip ----------------------------------------------------
-// ---------- Lock capture (done here, not in gen~) ---------------------------
-// The engine keeps a ring of the last 512 hits per file: row = [grid time, slice+1, 38 offsets, rep, seed].
-// On Lock, pick the hits from the last Lock-length bars, order them by loop phase, write the
-// locked list (row, phase) and flag it so the engine replays it instead of capturing its own.
-function captureLock(f) {
-	var c = f * CTL;
-	var pos = bufCF.peek(1, c + 20, 1);
-	var wc = bufCF.peek(1, c + 21, 1);
-	var lk = bufCF.peek(1, c + 22, 1) || 4;
-	var rows = bufMEM.peek(1, f * 1024 * ROW, 512 * ROW);
-	if (typeof rows === "number") { rows = [rows]; }
-	var t0 = Math.floor(pos / lk) * lk;
-	var list = [];
-	for (var n = Math.max(0, wc - 512); n < wc; n++) {
-		var rw = n % 512, tg = rows[rw * ROW], rsl = rows[rw * ROW + 1];
-		if (rsl > 0.5 && tg <= pos && tg > pos - lk) {
-			list.push([tg >= t0 ? tg - t0 : tg - (t0 - lk), rw]);
-		}
+// ---------- Free / Lock and patterns ------------------------------------------
+// A pattern is one file's locked loop: cnt hits over len bars, each a phase in the loop and a 43-value row
+// [phase, slice+1, 38 per-hit offsets, repeat draw, seed, wait before the hit]. The engine plays it from one of
+// two banks; the brain writes the idle bank, puts bank / count / length in cf 25..27 and counts the request up
+// in cf 24. The engine swaps once per new number and reports what plays in cf 23 / 16 / 17 (request handled: 29).
+// The brain never writes 16 / 17 / 23 and the engine never writes 24..27.
+var PAT_MAX = 208;            // hits per pattern (rows 608..815 for bank 0, 816..1023 for bank 1)
+var PAT_ROW0 = [608, 816];
+function listBase(f, bank) { return (f * 1024 + 512) * ROW + bank * 2048; }
+function cfv(f, k) { return bufCF.peek(1, f * CTL + k, 1); }
+
+// what the file is playing right now (mutations included)
+function readPattern(f) {
+	var bank = cfv(f, 23) > 0.5 ? 1 : 0;
+	var cnt = Math.round(cfv(f, 16)), len = cfv(f, 17) || 4;
+	var pat = { cnt: 0, len: len, ph: [], rows: [] };
+	if (cnt <= 0) { return pat; }
+	var ent = bufMEM.peek(1, listBase(f, bank), cnt * 2);
+	if (typeof ent === "number") { ent = [ent]; }
+	for (var e = 0; e < cnt; e++) {
+		var rw = bufMEM.peek(1, (f * 1024 + Math.round(ent[e * 2])) * ROW, ROW);
+		if (typeof rw === "number") { rw = [rw]; }
+		pat.ph.push(ent[e * 2 + 1]);
+		pat.rows = pat.rows.concat(rw);
 	}
-	list.sort(function (a, b2) { return a[0] - b2[0]; });
-	var flat = [];
-	for (var i = 0; i < list.length; i++) { flat.push(list[i][1], list[i][0]); }
-	if (flat.length) { bufMEM.poke(1, (f * 1024 + 512) * ROW, flat); }
-	bufCF.poke(1, c + 16, list.length);
-	bufCF.poke(1, c + 17, lk);
-	bufCF.poke(1, c + 19, 1);              // tells the engine: use this loop, don't capture
-	post("wanderer: slot " + (f + 1) + " locked " + list.length + " hits over " + lk + " bar(s)\n");
+	pat.cnt = cnt;
+	return pat;
 }
 
+// lockTo: 1 Lock, 0 Free, -1 leave as is
+function writePattern(f, pat, lockTo) {
+	var c = f * CTL;
+	var bank = cfv(f, 23) > 0.5 ? 0 : 1;
+	var cnt = Math.min(pat.cnt, PAT_MAX), base = PAT_ROW0[bank], flat = [];
+	for (var e = 0; e < cnt; e++) {
+		bufMEM.poke(1, (f * 1024 + base + e) * ROW, pat.rows.slice(e * ROW, (e + 1) * ROW));
+		flat.push(base + e, pat.ph[e]);
+	}
+	if (flat.length) { bufMEM.poke(1, listBase(f, bank), flat); }
+	bufCF.poke(1, c + 19, 1);              // the engine must not capture its own loop when Lock comes on
+	bufCF.poke(1, c + 25, [bank, cnt, pat.len]);
+	bufCF.poke(1, c + 24, (Math.round(cfv(f, 24)) % 1000000) + 1);   // a new request number: the engine swaps once
+	if (lockTo >= 0) { files[f].lock = lockTo; bufCF.poke(1, c + 0, lockTo); }
+}
+function swapWaiting(f) { return Math.round(cfv(f, 24)) !== Math.round(cfv(f, 29)); }
+var EMPTY_PAT = { cnt: 0, len: 4, ph: [], rows: [] };
+
+// Free -> Lock: the hits of the last Lock-length bars, copied from the engine's ring of the last 512 hits.
+// The ring is read from the newest hit back and stops where time jumped backwards (a Live loop jumping
+// back to its start), so hits from an earlier pass are never mixed in.
+// Nothing played yet (transport stopped since load): a fresh pattern instead.
+function capturePattern(f) {
+	var c = f * CTL;
+	var pos = cfv(f, 20) - 0.000001, wc = cfv(f, 21), lk = cfv(f, 22) || 4;   // the reported position is 32-bit: a hair
+	var rows = bufMEM.peek(1, f * 1024 * ROW, 512 * ROW);                         // before a grid line can read as on it
+	if (typeof rows === "number") { rows = [rows]; }
+	var t0 = Math.floor(pos / lk) * lk, list = [];
+	var newer = Infinity;
+	for (var n = wc - 1; n >= Math.max(0, wc - 512); n--) {
+		var rw = n % 512, tg = rows[rw * ROW], rsl = rows[rw * ROW + 1];
+		if (tg > newer + 0.000001 || tg <= pos - lk) { break; }   // an earlier pass, or older than the window
+		newer = tg;
+		if (rsl > 0.5 && tg <= pos) { list.push([tg >= t0 ? tg - t0 : tg - (t0 - lk), rw]); }
+	}
+	if (!list.length) { return generatePattern(f); }
+	list.sort(function (a, b2) { return a[0] - b2[0]; });
+	var pat = { cnt: list.length, len: lk, ph: [], rows: [] };
+	for (var i = 0; i < list.length; i++) {
+		pat.ph.push(list[i][0]);
+		pat.rows = pat.rows.concat(rows.slice(list[i][1] * ROW, (list[i][1] + 1) * ROW));
+	}
+	return pat;
+}
+
+// a fresh random pattern of the Lock length, drawn the way the free clock would play this file's settings
+function knobNow(fl, p, off) { return denorm(p, clamp(fl.b[p] + off * fl.r[p] * chaosV / 50, 0, 1)); }
+function wwait(nlen, dens, cont, last) {
+	var sh = (Math.log(1 / nlen) / Math.LN2 - 2.5) / 2.5;
+	var sim = Math.exp(-Math.abs(Math.log(nlen / last) / Math.LN2));
+	return Math.exp(3 * dens * sh) * Math.exp(3 * cont * (sim - 0.5));
+}
+function wrapi(x, n) { return ((x % n) + n) % n; }
+function pickSlice(fl, w, mode, spread, wstr, prev, ph) {
+	var ns = fl.ns, cnt = 0, tot = 0, post = 0, i;
+	if (ns <= 0) { return -1; }
+	for (i = 0; i < ns; i++) {
+		if (fl.en[i]) { cnt++; tot += 1 + (w[i] - 1) * wstr; }
+		if ((fl.frames > 0 ? fl.starts[i] / fl.frames : 0) <= ph) { post = i; }
+	}
+	if (cnt === 0) { return -1; }
+	var u1 = Math.random(), u2 = Math.random();
+	if (mode === 0 || mode === 2) {
+		var kk = Math.floor(u1 * cnt), x = u1 * tot, acc = 0;
+		for (i = 0; i < ns; i++) {
+			if (!fl.en[i]) { continue; }
+			if (mode === 0) { if (kk-- === 0) { return i; } }
+			else { acc += 1 + (w[i] - 1) * wstr; if (acc >= x) { return i; } }
+		}
+		return -1;
+	}
+	var target;
+	if (mode === 1) {
+		var mx = Math.max(1, Math.floor(spread * ns * 0.5 + 0.5)), sp = Math.floor((u1 * 2 - 1) * mx + 0.5);
+		if (sp === 0) { sp = u2 < 0.5 ? -1 : 1; }
+		target = wrapi(prev + sp, ns);
+	} else {
+		var pt = post;
+		if (u2 < spread) { pt = post + Math.floor((u1 * 2 - 1) * 2.5 + 0.5); }
+		target = wrapi(pt, ns);
+	}
+	for (var d = 0; d < ns; d++) {
+		var ia = wrapi(target + d, ns), ib = wrapi(target - d, ns);
+		if (fl.en[ia]) { return ia; }
+		if (fl.en[ib]) { return ib; }
+	}
+	return -1;
+}
+function generatePattern(f) {
+	var fl = files[f], c = f * CTL;
+	var len = cfv(f, 22) || 4, flen = Math.max(0.25, cfv(f, 3) || 1);
+	var w = weights(f), wk = [], last = 0.0625, prev = -1, t = 0, pat = { cnt: 0, len: len, ph: [], rows: [] };
+	var restp = clamp(-gDens / 100, 0, 1) * 0.85;
+	for (var p = 0; p < 38; p++) { wk.push(0); }
+	var on = [], anyOn = false;
+	for (var i = 0; i < 6; i++) { on.push(fl.b[KEY.v1 + i] ? 1 : 0); if (on[i]) { anyOn = true; } }
+	if (!anyOn) { on[4] = 1; }
+	var trip = gTrip && fl.b[KEY.trip], dot = gDot && fl.b[KEY.dot], derived = fl.b[KEY.derived];
+	var guard = 0;
+	while (t < len - 1e-9 && pat.cnt < PAT_MAX && guard++ < 4096) {
+		// per-hit offsets, as the free clock draws them (Walk mode keeps a running value)
+		var off = [];
+		for (p = 0; p < 38; p++) {
+			var md = fl.m[p], u = Math.random() * 2 - 1, o = 0;
+			if (md === 2) { o = clamp(wk[p] + u * 0.35, -1, 1); wk[p] = o; } else if (md === 1) { o = u; }
+			off.push(md > 0 ? o : 0);
+		}
+		var rep = Math.random(), seed = Math.floor(Math.random() * 100000) / 100;
+		var ph = (t - Math.floor(t / flen) * flen) / flen;
+		var sl = pickSlice(fl, w, fl.b[KEY.smode], knobNow(fl, KEY.spread, off[KEY.spread]) / 100,
+			knobNow(fl, KEY.wstr, off[KEY.wstr]) / 100, prev, ph);
+		if (sl >= 0 && !(Math.random() < restp)) {
+			pat.ph.push(t);
+			pat.rows = pat.rows.concat([t, sl + 1], off, [rep, seed, last]);
+			pat.cnt++;
+			prev = sl;
+		}
+		// next wait, weighted like the free clock
+		var dens = clamp(knobNow(fl, KEY.dens, off[KEY.dens]) / 50 - 1 + gDens / 100 * 3, -3, 3);
+		var cont = knobNow(fl, KEY.cont, off[KEY.cont]) / 100;
+		var cand = [], tot = 0;
+		for (i = 0; i < 6; i++) {
+			if (!on[i]) { continue; }
+			var dw = derived ? Math.max(0.02, cfv(f, 5 + i)) : 1, l0 = Math.pow(0.5, i);
+			var ls = [l0];
+			if (trip) { ls.push(l0 * 2 / 3); }
+			if (dot && i > 0) { ls.push(l0 * 1.5); }   // no dotted whole: no wait over a bar
+			for (var k = 0; k < ls.length; k++) { var wt = dw * wwait(ls[k], dens, cont, last); cand.push([ls[k], wt]); tot += wt; }
+		}
+		var x = Math.random() * tot, acc = 0, pick = 0.0625;
+		for (i = 0; i < cand.length; i++) { acc += cand[i][1]; if (acc >= x) { pick = cand[i][0]; break; } }
+		last = pick;
+		t = (Math.floor(t / pick + 0.000001) + 1) * pick;
+	}
+	return pat;
+}
+
+function lockFile(f, on) {
+	var fl = files[f];
+	if (on && fl.loaded && !fl.lock) {
+		var pat = capturePattern(f);
+		writePattern(f, pat, 1);
+		post("wanderer: slot " + (f + 1) + " locked " + pat.cnt + " hits over " + pat.len + " bar(s)\n");
+		checkFiles.push(f); checkTask.cancel(); checkTask.schedule(300);
+	}
+	fl.lock = on ? 1 : 0;
+	writeCtl(f);
+}
+
+// each file's own Free/Lock switch
 function flock(val) {
 	if (!ready) { return; }
-	if (val && files[sel].loaded && !files[sel].lock && !glockOn) { captureLock(sel); }
-	files[sel].lock = val ? 1 : 0;
-	writeCtl(sel);
+	lockFile(sel, val ? 1 : 0);
 	saveSoon(3000);   // after the loop has been captured
 }
+
+// global Free/Lock: switches every file. A value equal to the last one is ignored, so Live restoring
+// the switch at load never changes files that were switched on their own.
+function glock(val) {
+	var v = val ? 1 : 0;
+	if (!ready) { gLock = v; return; }
+	if (v === gLock) { return; }
+	gLock = v;
+	for (var f = 0; f < NF; f++) { if (files[f].loaded) { lockFile(f, v); } }
+	refreshStrip();
+	saveSoon(3000);
+}
+
+// in Lock, a Random press also makes a fresh pattern
+function freshPattern(f) {
+	if (!files[f].lock || !files[f].loaded) { return; }
+	writePattern(f, generatePattern(f), -1);
+}
+
+// ---------- diagnostics for Store / recall (console) ---------------------------
+function patInfo(pt) {
+	if (!pt) { return "no pattern"; }
+	var t = Object.prototype.toString.call(pt.rows), e0 = pt.rows && pt.rows.length ? Object.prototype.toString.call(pt.rows[0]) : "-";
+	return pt.cnt + " hits over " + pt.len + " bars, " + (pt.rows ? pt.rows.length : 0) + " values (" + t + " of " + e0 + ")" +
+		(pt.cnt > 0 ? ", first: slice " + (pt.rows[1] - 1) + " at " + pt.ph[0] : "");
+}
+var checkFiles = [];
+var checkTask = new Task(recallCheck, this);
+function recallCheck() {
+	for (var i = 0; i < checkFiles.length; i++) {
+		var f = checkFiles[i], bank = cfv(f, 23) > 0.5 ? 1 : 0, cnt = Math.round(cfv(f, 16));
+		var first = "-";
+		if (cnt > 0) {
+			var row = Math.round(bufMEM.peek(1, listBase(f, bank), 1));
+			first = "row " + row + " slice " + (bufMEM.peek(1, (f * 1024 + row) * ROW + 1, 1) - 1) + " at " + bufMEM.peek(1, listBase(f, bank) + 1, 1);
+		}
+		post("wanderer: check file " + (f + 1) + ": engine lock " + cfv(f, 0) + ", hits " + cnt + ", bars " + cfv(f, 17) + ", bank " + bank +
+			", swap waiting " + (swapWaiting(f) ? "yes" : "no") + ", position " + cfv(f, 20).toFixed(3) + ", slices " + cfv(f, 2) + ", first " + first +
+			" | request " + cfv(f, 24) + ", engine handled " + cfv(f, 29) + ", swaps done " + cfv(f, 30) + "\n");
+	}
+	checkFiles = [];
+}
+
+// Random pressed: the free clock drops the wait it had scheduled and plays on the next 1/16 line
+function nudgeClock(f) { bufCF.poke(1, f * CTL + 28, (Math.round(cfv(f, 28)) % 1000000) + 1); }
+
+function gdensity(v) { gDens = clamp(v, -100, 100); }
+function gtrip(v) { gTrip = v ? 1 : 0; }
+function gdot(v) { gDot = v ? 1 : 0; }
 
 function fmute(val) {
 	if (!ready) { return; }
@@ -927,6 +1151,8 @@ function frand(v) {
 	if (!ready) { return; }
 	if (!files[sel].loaded) { return; }
 	randomize(sel, null, depthOf("file"));
+	freshPattern(sel);
+	nudgeClock(sel);
 	refreshPanel();
 	dirty();
 }
@@ -945,17 +1171,9 @@ function grand(v) {
 	beginBatch();
 	try { for (var f = 0; f < NF; f++) { if (files[f].loaded) { randomize(f, null, depthOf("all")); } } }
 	finally { endBatch(); }
+	for (var f2 = 0; f2 < NF; f2++) { freshPattern(f2); if (files[f2].loaded) { nudgeClock(f2); } }
 	refreshPanel();
 	dirty();
-}
-
-function glock(val) {
-	if (!ready) { glockOn = val ? 1 : 0; return; }
-	if (val && !glockOn) {
-		for (var f = 0; f < NF; f++) { if (files[f].loaded && !files[f].lock) { captureLock(f); } }
-	}
-	glockOn = val ? 1 : 0;
-	saveSoon(3000);
 }
 
 // ---------- randomize -----------------------------------------------------
@@ -984,7 +1202,7 @@ function randomizeBody(f, onlyTab, amt) {
 	for (var p = 0; p < NB + 1; p++) {
 		var q = P[p];
 		if (onlyTab && q.tab !== onlyTab) { continue; }
-		if (q.tab === "detect") { continue; }   // handled below
+		if (q.tab === "detect" || q.dead) { continue; }   // Random never changes the slicing
 		if (q.type === "knob" && q.k === "vol") {
 			// volume itself stays put; only its range (per-hit loudness variation) is rolled, capped at about +-12 dB
 			var vr = Math.random() < 0.4 ? 0 : Math.random() * 0.3;
@@ -1006,6 +1224,7 @@ function randomizeBody(f, onlyTab, amt) {
 			fl.b[p] += (tb - fl.b[p]) * amt;
 			fl.r[p] += (tr - fl.r[p]) * amt;
 			if (Math.random() < amt) { fl.m[p] = fl.r[p] < 0.005 ? 0 : (Math.random() < 0.7 ? 1 : 2); }
+			if (q.steady) { fl.r[p] = 0; fl.m[p] = 0; }
 		} else if (q.type === "toggle") {
 			if (Math.random() < amt) { fl.b[p] = Math.random() < q.odds ? 1 : 0; }
 		} else if (q.type === "enum") {
@@ -1033,29 +1252,6 @@ function randomizeBody(f, onlyTab, amt) {
 			writeParam(f, tp, 3);
 		}
 	}
-	if (!onlyTab || onlyTab === "detect") {
-		// detection: method weighted toward the drum-friendly ones, moderate sensitivity and length
-		var mth = KEY.method, sn = KEY.sens, ml = KEY.minlen;
-		var before = fl.b[mth];
-		if (Math.random() < amt) { fl.b[mth] = pickWeighted([0.35, 0.2, 0.1, 0.1, 0.1, 0.1, 0.05]); }
-		// Sensitivity / Min Len knobs stay put; only their ranges and modes are rolled
-		var ranged = false;
-		var dk = [sn, ml];
-		for (var di = 0; di < 2; di++) {
-			var dp = dk[di];
-			var dtr = Math.random() < 0.4 ? 0 : Math.random() * 0.5;
-			fl.r[dp] += (dtr - fl.r[dp]) * amt;
-			if (Math.random() < amt) { fl.m[dp] = fl.r[dp] < 0.005 ? 0 : (Math.random() < 0.7 ? 1 : 2); }
-			if (fl.m[dp] > 0 && fl.r[dp] > 0.005) { ranged = true; }
-		}
-		if (fl.loaded && (fl.b[mth] !== before || ranged)) { scheduleDetect(f); }
-	}
-	if (!onlyTab || onlyTab === "slice") {
-		var ch = KEY.chokep;
-		var cht = Math.random() < 0.4 ? 1 : 0.25 + Math.random() * 0.75;   // often full, otherwise 25..100%
-		fl.b[ch] += (cht - fl.b[ch]) * amt;
-		writeParam(f, ch, 3);
-	}
 	if (!onlyTab || onlyTab === "filter") {
 		var tv = KEY.ftvar;
 		var tvt = 0.6 * Math.pow(Math.random(), 1.5);   // 0..60%, leaning low
@@ -1072,10 +1268,11 @@ function randomizeBody(f, onlyTab, amt) {
 		writeParam(f, c, 3);
 	}
 	if (!onlyTab || onlyTab === "clock") {
-		for (var i = 0; i < 6; i++) { if (fl.b[KEY.v1 + i]) { anyNote = true; } }
-		if (!anyNote) { fl.b[KEY.v16] = 1; writeParam(f, KEY.v16, 3); }
+		// always at least one of 1/8 and 1/16, so a roll never leaves only long waits
+		anyNote = fl.b[KEY.v8] || fl.b[KEY.v16];
+		if (!anyNote) { var kq = Math.random() < 0.5 ? KEY.v8 : KEY.v16; fl.b[kq] = 1; writeParam(f, kq, 3); }
 	}
-	if ((!onlyTab || onlyTab === "slice") && fl.b[KEY.smode] === 3) { randomWeights(f); }
+	if ((!onlyTab || onlyTab === "slice") && fl.b[KEY.smode] === 2) { randomWeights(f); }
 	if (fl.loaded) { writeTable(f); }
 	if (f === sel) { refreshWave(); }
 }
@@ -1117,11 +1314,9 @@ var clearLook = null;
 var clearDisarm = new Task(clearDisarmNow, this);
 var clearUITask = new Task(clearResetUI, this);
 // global controls back to their defaults (the Out section stays as set: Even, Comp, Volume, Limit)
-var CLEAR_UI = [["macro", 100], ["quant", 0], ["glen", 0], ["qhit", 2], ["qext", 1], ["chaos", 50], ["gdensity", 0], ["gpitch", 0], ["mutate", 0],
+var CLEAR_UI = [["macro", 100], ["quant", 0], ["glen", 0], ["qhit", 2], ["gmethod", 0], ["chaos", 50], ["gdensity", 0], ["gpitch", 0], ["mutate", 0],
 	["gscale", 0], ["gtrip", 1], ["gdot", 1], ["gptch", 1], ["grev", 1], ["glock", 0], ["locklen", 2],
-	["slot", 0], ["slide", 0], ["msens", 0], ["mlen", 0], ["depth_file", 100], ["depth_all", 100],
-	["tabs", 0]];
-var PANEL_DEPTHS = ["clock", "slice", "play", "pitch", "env", "filter", "repeat", "grain", "detect"];
+	["slot", 0], ["slide", 0], ["msens", 0], ["mlen", 0], ["depth_file", 100], ["depth_all", 100]];
 
 function clearall(v) {
 	if (v === 0 || !ready) { return; }
@@ -1170,7 +1365,7 @@ function wipeAll() {
 	for (var f = 0; f < NF; f++) {
 		files[f] = newFile();
 		var c = f * CTL;
-		bufCF.poke(1, c + 16, [0, 0, 0, 0]);   // locked list: count, length, -, restore flag
+		writePattern(f, EMPTY_PAT, 0);   // no locked list left behind
 		writeAll(f, 3);
 		writeCtl(f);
 		outlet(0, "target", f + 1);
@@ -1185,6 +1380,8 @@ function wipeAll() {
 	rdepths = {};
 	mSens = 0;
 	mLen = 1;
+	gMethod = 0;
+	gLock = 0;
 	sel = 0;
 	g.sel = 0;
 	refreshAll();
@@ -1196,14 +1393,7 @@ function clearResetUI() {
 		var o = pat.getnamed(CLEAR_UI[i][0]);
 		if (o) { o.message("float", CLEAR_UI[i][1]); }
 	}
-	var pobj = pat.getnamed("panel");
-	var pp = pobj ? pobj.subpatcher() : null;
-	if (pp) {
-		for (var k = 0; k < PANEL_DEPTHS.length; k++) {
-			var d = pp.getnamed("depth_" + PANEL_DEPTHS[k]);
-			if (d) { d.message("float", 100); }
-		}
-	}
+	tab(0);
 	refreshAll();
 	saveSoon(500);
 }
@@ -1221,7 +1411,13 @@ function snapshot() {
 function store(v) {
 	if (v === 0) { return; }
 	if (!ready) { return; }
-	slots[curSlot] = snapshot();
+	var s = snapshot();
+	for (var f = 0; f < NF; f++) {
+		s[f].lk = files[f].lock ? 1 : 0;
+		if (files[f].lock) { s[f].pat = readPattern(f); }   // exactly what is playing, mutations included
+		if (files[f].loaded) { post("wanderer: store slot " + (curSlot + 1) + ", file " + (f + 1) + ": " + (s[f].lk ? "Lock, " + patInfo(s[f].pat) : "Free") + "\n"); }
+	}
+	slots[curSlot] = s;
 	dirty();
 }
 
@@ -1246,7 +1442,19 @@ function slot(i) {
 		}
 		writeAll(f, dur > 0 ? 2 : 3);
 		if (fl.loaded && fl.b[KEY.wsrc] !== srcOld) { writeTable(f); }
+		// Free/Lock and the locked pattern change together with the settings, so what plays is exactly what was
+		// stored. The loop stays in time: it is anchored to the song's bars. (Slots stored before 2026-10-11 leave them.)
+		if (s[f].lk !== undefined && fl.loaded) {
+			post("wanderer: recall slot " + (curSlot + 1) + ", file " + (f + 1) + ": " + (s[f].lk ? "Lock, " + patInfo(s[f].pat) : "Free") + "\n");
+			if (s[f].lk) { writePattern(f, s[f].pat || EMPTY_PAT, 1); }
+			else if (fl.lock) { fl.lock = 0; writeCtl(f); }
+			checkFiles.push(f);
+		} else if (fl.loaded) {
+			post("wanderer: recall slot " + (curSlot + 1) + ", file " + (f + 1) + ": no Free/Lock stored in this slot\n");
+		}
 	}
+	if (checkFiles.length) { checkTask.cancel(); checkTask.schedule(300); }
+	refreshStrip();
 	if (dur > 0) {
 		sliding = true;
 		outlet(2, "sldur", dur);
@@ -1307,29 +1515,17 @@ function saveSoon(ms) { saveTask.cancel(); saveTask.schedule(ms); }
 
 function saveState() {
 	if (!ready) { return; }
-	// v3: no arrays directly inside arrays and no nulls (Max dictionaries cannot hold them)
-	var st = { v: 3, sel: sel, msens: mSens, mlen: mLen, slots: [], files: [] };
+	// v3+: no arrays directly inside arrays and no nulls (Max dictionaries cannot hold them).
+	// v4: 2026-10-11 menus. v5: Free/Lock, patterns in memory slots
+	var st = { v: 5, sel: sel, msens: mSens, mlen: mLen, gm: gMethod, gl: gLock, rd: rdepths, slots: [], files: [] };
 	for (var s = 0; s < 8; s++) { st.slots.push(slots[s] ? { f: packSlot(slots[s]) } : { e: 1 }); }
 	for (var f = 0; f < NF; f++) {
 		var fl = files[f];
-		var o = { path: fl.path, b: fl.b.map(round4), r: fl.r.map(round4), m: fl.m.slice(),
+		var o = { path: fl.path, b: fl.b.map(round6), r: fl.r.map(round6), m: fl.m.slice(),
 			en: fl.en.slice(), w: fl.wman.map(round4), lock: fl.lock, mute: fl.mute };
-		var c = f * CTL;
-		if (fl.lock || glockOn) {
-			var cnt = bufCF.peek(1, c + 16, 1);
-			var len = bufCF.peek(1, c + 17, 1);
-			if (cnt > 0) {
-				// locked list = (row, phase) pairs pointing into the hit rows
-				var ent = bufMEM.peek(1, (f * 1024 + 512) * ROW, cnt * 2);
-				if (typeof ent === "number") { ent = [ent]; }
-				var ph = [], rows = [];
-				for (var e = 0; e < cnt; e++) {
-					ph.push(round4(ent[e * 2 + 1]));
-					var rw = bufMEM.peek(1, (f * 1024 + ent[e * 2]) * ROW, ROW);
-					rows = rows.concat(rw.map(round4));
-				}
-				o.loop = { cnt: cnt, len: len, ph: ph, rows: rows };
-			}
+		if (fl.lock) {
+			var lp = readPattern(f);
+			if (lp.cnt > 0) { o.loop = packPattern(lp); }
 		}
 		st.files.push(o);
 	}
@@ -1344,10 +1540,22 @@ function saveState() {
 	saving = false;
 }
 
+// 9 significant digits: the engine's 32-bit buffer values come back bit for bit after a reload
+function round6(x) { return +(+x).toPrecision(9); }
+function packPattern(pt) { return { cnt: pt.cnt, len: pt.len, ph: pt.ph.map(round6), rows: pt.rows.map(round6) }; }
+function unpackPattern(o) {
+	if (!o || !(o.cnt > 0)) { return null; }
+	var ph = toArr(o.ph), rows = toArr(o.rows);
+	if (ph.length < o.cnt || rows.length < o.cnt * ROW) { return null; }
+	return { cnt: o.cnt, len: o.len || 4, ph: ph, rows: rows };
+}
 function packSlot(s) {
 	var out = [];
 	for (var f = 0; f < s.length; f++) {
-		out.push({ b: s[f].b.map(round4), r: s[f].r.map(round4), m: s[f].m.slice() });
+		var o = { b: s[f].b.map(round6), r: s[f].r.map(round6), m: s[f].m.slice() };
+		if (s[f].lk !== undefined) { o.lk = s[f].lk; }
+		if (s[f].pat && s[f].pat.cnt > 0) { o.pat = packPattern(s[f].pat); }
+		out.push(o);
 	}
 	return out;
 }
@@ -1379,7 +1587,12 @@ function restore(name) {
 		if (isArr(e0)) { arr = e0; }                       // v2 format
 		else if (e0 && e0.f !== undefined) { arr = toArr(e0.f); }   // v3 format
 		if (arr && arr.length) {
-			for (var k = 0; k < arr.length; k++) { arr[k] = { b: toArr(arr[k].b), r: toArr(arr[k].r), m: toArr(arr[k].m) }; }
+			for (var k = 0; k < arr.length; k++) {
+				arr[k] = { b: toArr(arr[k].b), r: toArr(arr[k].r), m: toArr(arr[k].m), lk: arr[k].lk, pat: unpackPattern(arr[k].pat) };
+				if (arr[k].lk === undefined) { delete arr[k].lk; }
+				if (!(st.v >= 4)) { migrateParams(arr[k].b); }
+				fixParams(arr[k].b, arr[k].r, arr[k].m);
+			}
 			slots.push(arr);
 		} else { slots.push(null); }
 	}
@@ -1392,26 +1605,23 @@ function restore(name) {
 			if (orr[p] !== undefined) { fl.r[p] = orr[p]; }
 			if (om[p] !== undefined) { fl.m[p] = om[p]; }
 		}
-		fl.lock = o.lock || 0;
+		if (!(st.v >= 4)) { migrateParams(fl.b); }
+		fixParams(fl.b, fl.r, fl.m);
+		var lpat = st.v >= 2 ? unpackPattern(o.loop) : null;
+		fl.lock = (o.lock || lpat) ? 1 : 0;   // before v5 a saved loop could also come from the old global Lock
 		fl.mute = o.mute || 0;
 		writeAll(f, 3);
+		if (fl.lock && lpat) { writePattern(f, lpat, 1); }
 		writeCtl(f);
-		var lph = o.loop ? toArr(o.loop.ph) : [], lrows = o.loop ? toArr(o.loop.rows) : [];
-		if (st.v >= 2 && o.loop && o.loop.cnt > 0 && lph.length >= o.loop.cnt && lrows.length >= o.loop.cnt * ROW) {
-			for (var e = 0; e < o.loop.cnt; e++) {
-				bufMEM.poke(1, (f * 1024 + e) * ROW, lrows.slice(e * ROW, (e + 1) * ROW));
-				bufMEM.poke(1, (f * 1024 + 512) * ROW + e * 2, [e, lph[e]]);
-			}
-			bufCF.poke(1, f * CTL + 16, o.loop.cnt);
-			bufCF.poke(1, f * CTL + 17, o.loop.len);
-			bufCF.poke(1, f * CTL + 19, 1);
-		}
 		if (o.path) {
 			fl.keep = { en: toArr(o.en), w: toArr(o.w) };
 			loadFile(f, o.path);
 		}
 	}
 	if (st.msens !== undefined) { mSens = st.msens; mLen = st.mlen || 1; }
+	if (st.gm !== undefined) { gMethod = st.gm ? 1 : 0; }
+	if (st.gl !== undefined) { gLock = st.gl ? 1 : 0; }
+	if (st.rd && typeof st.rd === "object") { for (var rk in st.rd) { rdepths[rk] = clamp(+st.rd[rk], 0, 1); } }
 	sel = clamp(st.sel || 0, 0, NF - 1);
 	g.sel = sel;
 	refreshAll();
@@ -1448,7 +1658,7 @@ function refreshWave() {
 	var fl = files[sel];
 	g.wave = { buf: audioName(sel), ver: fl.gen || 0, frames: fl.frames, loaded: fl.loaded, missing: fl.missing,
 		name: fl.name, ns: fl.ns, starts: fl.starts, ends: fl.ends, en: fl.en, w: fl.wman,
-		manual: fl.b[KEY.wsrc] === 0 && fl.b[KEY.smode] === 3 };
+		manual: fl.b[KEY.smode] === 2 };
 	tellUI("wave", "bang");
 }
 
