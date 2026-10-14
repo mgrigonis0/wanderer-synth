@@ -30,6 +30,9 @@ Global: Macro, Chaos, Density, Pitch, Scale, Mutate, Quant + Hits grid, Length, 
 - On Play, a position within 1/32 past a bar line counts as the line; a hit exactly on the current position plays (instant start).
 - Removed for good: Choke, Nudge, Jump, repeat Same/Vary, automatic weight sources, slicing methods other than Hits/Notes, Quant Extra menu. Random never changes slicing.
 
+- UI approved 2026-10-15 (mockup: `devices/wanderer/design/ui-mockup.dc.html`, drawn at 2x; canvas "Wanderer UI" in claude.ai). One grid: cells 32 px wide (1x), header + two cell rows + one action row in every section; labels on one line. Sections: Files (2x8) · Waveform · per-file tabs (vertical list) · Groove (Quant, Density, Length / Quant to, Mode Free-Lock, Bars) + Shape (Macro, Chaos, Mutate / Pitch, Scale, Allow Trip-Dot-Pitch-Rev), Random all + Depth, Clear all · Memory · Detect (all files) · Out (Even, Comp with GR meter, Stereo, Volume, Limit, level meter). About 930 px wide. Colour = domain (Clock red #f0606a, Groove blue).
+- Per-hit range is drawn as an outer arc on each per-file dial; one jsui draws a whole tab page.
+
 ## Rejected approaches
 - Engine clearing requests via conditional writes: dropped by gen~ in Live, Lock went silent.
 - FluCoMa novelty/ampgate/grid methods: too many, and randomising them made results unpredictable.
@@ -43,6 +46,5 @@ Global: Macro, Chaos, Density, Pitch, Scale, Mutate, Quant + Hits grid, Length, 
 - UI outdated after many additions and removals.
 
 ## Next step
-1. UI mockup of the whole device (Live's device height is fixed at 169 px), approved by the user before anything is built.
-2. Build engine, brain, saving, detection, no-crosstalk naming and the approved UI in `devices/wanderer/Wanderer/`; sim-check, push, user tests in Live.
-Optional: the user may attach 2–3 real files (one drum loop, one or two melodic) to tune Notes detection.
+Build per the approved mockup in `devices/wanderer/Wanderer/`: engine, brain, built-in detection, saving, no-crosstalk naming, Stereo knob, the UI. Sim-check, push, user tests in Live.
+Open before building: waveform gestures (click = slice on/off? drag = weight in Weighted?).
