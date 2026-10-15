@@ -62,7 +62,7 @@
 						"signal",
 						""
 					],
-					"text": "wanderer~ ---"
+					"text": "wanderer~ ---wnd"
 				}
 			},
 			{

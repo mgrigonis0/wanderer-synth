@@ -669,7 +669,7 @@ public:
             h.seed = (float)(std::floor(rng.u() * 100000) / 100);
             any = true;
         }
-        if (any) { sendPattern(f, 2); dirty(4000); }
+        if (any) { sendPattern(f, 2); if (saveAt < 0) dirty(30000); }   // Mutate saves now and then, not every pass
     }
 
     // ================================================================ Random

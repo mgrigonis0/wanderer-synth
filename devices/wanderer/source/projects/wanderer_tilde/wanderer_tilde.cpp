@@ -78,6 +78,7 @@ struct t_wanderer {
     bool initDone, gotState, saving;
     double initAt;
     double meterAt;
+    uint64_t lastHash;
 };
 
 static t_class* s_class = nullptr;
@@ -169,6 +170,13 @@ void Glue::saveState() {
     if (!x->stateDict) return;
     StateDoc d;
     x->model->writeState(d);
+    // nothing changed since the last save: no new step in Live's undo history
+    uint64_t h = 1469598103934665603ull;
+    auto mix = [&h](const void* p, size_t n) { const unsigned char* c = (const unsigned char*)p; for (size_t i = 0; i < n; i++) { h ^= c[i]; h *= 1099511628211ull; } };
+    for (auto& kv : d.num) { mix(kv.first.data(), kv.first.size()); mix(kv.second.data(), kv.second.size() * sizeof(double)); }
+    for (auto& kv : d.str) { mix(kv.first.data(), kv.first.size()); mix(kv.second.data(), kv.second.size()); }
+    if (h == x->lastHash) return;
+    x->lastHash = h;
     dictionary_clear(x->stateDict);
     std::vector<t_atom> at;
     for (auto& kv : d.num) {
@@ -355,9 +363,13 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     outlet_new((t_object*)x, "signal");
     x->ob.z_misc |= Z_NO_INPLACE;
 
-    x->prefix = argc > 0 && atom_gettype(argv) == A_SYM ? atom_getsym(argv) : gensym("wnd");
-    if (argc > 0 && atom_gettype(argv) != A_SYM) {   // Live turned "---" into a number
-        char b[64]; std::snprintf(b, sizeof b, "%ld", (long)atom_getlong(argv)); x->prefix = gensym(b);
+    // the patch writes "wanderer~ ---wnd": Live turns it into e.g. "012wnd"; the prefix is what replaced "---"
+    // (kept as text, so "012" keeps its zeros and matches "buffer~ ---w1" -> "012w1")
+    x->prefix = gensym("wnd");
+    if (argc > 0 && atom_gettype(argv) == A_SYM) {
+        std::string a = atom_getsym(argv)->s_name;
+        if (a.size() >= 3 && a.compare(a.size() - 3, 3, "wnd") == 0) a.resize(a.size() - 3);
+        x->prefix = gensym(a.c_str());
     }
     for (int f = 0; f < NF; f++) {
         char b[256];
@@ -379,7 +391,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->wk = new Worker();
     x->wk->th = std::thread(worker_run, x);
     x->initDone = false; x->gotState = false; x->saving = false;
-    x->initAt = 0; x->meterAt = 0;
+    x->initAt = 0; x->meterAt = 0; x->lastHash = 0;
     char dn[256];
     std::snprintf(dn, sizeof dn, "%sstate", x->prefix->s_name);
     x->stateName = gensym(dn);

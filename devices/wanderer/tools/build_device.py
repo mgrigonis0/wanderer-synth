@@ -131,7 +131,7 @@ def info(name, title):
 
 
 # --------------------------------------------------------------------------------------------- core
-eng = obj("wanderer~ ---", (40, 300, 140, 22), ins=1, outs=3, outtypes=["signal", "signal", ""])
+eng = obj("wanderer~ ---wnd", (40, 300, 140, 22), ins=1, outs=3, outtypes=["signal", "signal", ""])
 phas = obj("phasor~ 1n @lock 1", (40, 260, 120, 22), ins=2, outs=1, outtypes=["signal"])
 plug = obj("plugout~", (40, 350, 60, 22), ins=2, outs=0)
 wire(phas, 0, eng, 0); wire(eng, 0, plug, 0); wire(eng, 1, plug, 1)
