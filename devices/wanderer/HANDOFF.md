@@ -9,8 +9,8 @@ settings have a value, a per-hit range (scaled by Chaos) and a mode (fixed / rnd
 slots with Slide, global Quant, and an output chain (Even, Comp, Stereo, Volume, Limit).
 
 ## Current state
-- Build **2026-10-15a**: complete rebuild, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
-- **Not yet tried in Live.** Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
+- Build **2026-10-15b**, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
+- First Live test of 15a: engine loaded; drop did nothing (live.drop must be a file-type parameter, fixed), buttons did nothing (Live buttons send `bang`, fixed), labels truncated (cells widened to 44), `set_dash` errors (removed). 15b not yet tried. Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
 - Not verified anywhere but Live: the patch wiring (live.drop output, pattr dict save, live.observer, buffer~ loads),
   the jsui views' look, fonts (Ableton Sans Medium in jsui).
 
@@ -39,6 +39,9 @@ Even, Comp, Stereo, Volume, Limit, plus the hidden blob `State` (pattr).
 - Mutate re-draws a loop's hits right after each pass and the player swaps it in place (same hits, keeps its position).
 - Saved state = flat dict (keys like `f3.b`, `s2.f3.pat`) in a pattr blob; read once per load (pulled at `init`, 1.5 s fallback
   to "new device"); nothing is saved before that; identical saves are skipped. Slicing is saved too: a reload re-uses it.
+- live.drop is a parameter of type 4 (file), invisible 2: it only takes drops that way, and is never stored.
+- Buttons send `bang`: the model reads any word as the default value ("grand bang" = "grand 1").
+- Max 8 jsui flattens array arguments: no `set_dash([..], 0)`.
 - Live restoring Mode / Method at load is ignored when equal to the saved value (no surprise re-capture or re-slice).
 - Hits detection uses a plain and a brightened energy (hats on kick tails); Notes = log spectral flux + local median.
 - All fades S-shaped, ≥ 3 ms attack / 4 ms release, 5 ms cut fade; resonance fades out above ~10 kHz (no ringing near Nyquist).
@@ -50,7 +53,7 @@ Even, Comp, Stereo, Volume, Limit, plus the hidden blob `State` (pattr).
 - gen~ engine (see above). Storing state as one long JSON symbol: every save would leak a big symbol.
 
 ## Known issues
-- UI built at 36 px cells (Live's 9 pt labels need it): device is 1046 px wide, a bit wider than the mockup (~930).
+- Global cells are 44 px so Live's labels fit (1/16, Notes, Pitch): the device is 1136 px wide (mockup ~930).
 - Old Live sets with the legacy device don't load into this one (new device; no migration).
 
 ## Next step
