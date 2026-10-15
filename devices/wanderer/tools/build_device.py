@@ -196,12 +196,12 @@ for k in ORDER:
     x += PANEL_W[k] + 5
 DEVICE_W = x - 5 + 6
 
-# background, then the panels (drawn first: behind everything)
-box("panel", (900, 20, 60, 30), ins=1, outs=0, pres=(0, 0, DEVICE_W, DEV_H), bgcolor=rgba(DEV_BG), border=0,
-    rounded=0, ignoreclick=1)
+# the dark section panels: in the background layer (behind every control) and first in the file, as the old
+# device had its zones (that showed in Live). No full-size panel: Live's own device colour is the body, and a
+# full-size panel covered everything in 15b/15c.
 for k in ORDER:
     box("panel", (970, 20, 40, 30), ins=1, outs=0, pres=(PX[k], PY, PANEL_W[k], PH), bgcolor=rgba(PANEL), border=0,
-        rounded=6, ignoreclick=1)
+        rounded=6, background=1, ignoreclick=1, mode=0)
 
 
 def cellx(panel, i, offset=0):
@@ -470,6 +470,8 @@ def amxd(patch_json: bytes, devtype: bytes = b"iiii") -> bytes:
 
 def main():
     OUT.mkdir(exist_ok=True)
+    # background panels first in the list (drawn first = behind)
+    boxes.sort(key=lambda b: 0 if b["box"].get("background") == 1 else 1)
     text = json.dumps(patcher, indent="\t").encode("utf-8")
     (OUT / "Wanderer.maxpat").write_bytes(text)
     (OUT / "Wanderer.amxd").write_bytes(amxd(text))

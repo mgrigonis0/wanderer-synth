@@ -9,8 +9,8 @@ settings have a value, a per-hit range (scaled by Chaos) and a mode (fixed / rnd
 slots with Slide, global Quant, and an output chain (Even, Comp, Stereo, Volume, Limit).
 
 ## Current state
-- Build **2026-10-15c**, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
-- First Live test of 15a: engine loaded; drop did nothing (live.drop must be a file-type parameter, fixed), buttons did nothing (Live buttons send `bang`, fixed), labels truncated (cells widened to 44), `set_dash` errors (removed). 15b: section panels missing (marked background, Live doesn't draw those), drop got a bare TEMP-… file name. Both fixed in 15c, not yet tried. Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
+- Build **2026-10-15d**, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
+- First Live test of 15a: engine loaded; drop did nothing (live.drop must be a file-type parameter, fixed), buttons did nothing (Live buttons send `bang`, fixed), labels truncated (cells widened to 44), `set_dash` errors (removed). 15b: section panels missing (marked background, Live doesn't draw those), drop got a bare TEMP-… file name. 15c: a full-size body panel covered the whole device. 15d: no full-size panel; section panels in the background layer, first in the file (as the legacy device did). Not yet tried. Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
 - Not verified anywhere but Live: the patch wiring (live.drop output, pattr dict save, live.observer, buffer~ loads),
   the jsui views' look, fonts (Ableton Sans Medium in jsui).
 
@@ -40,7 +40,7 @@ Even, Comp, Stereo, Volume, Limit, plus the hidden blob `State` (pattr).
 - Saved state = flat dict (keys like `f3.b`, `s2.f3.pat`) in a pattr blob; read once per load (pulled at `init`, 1.5 s fallback
   to "new device"); nothing is saved before that; identical saves are skipped. Slicing is saved too: a reload re-uses it.
 - Dropped names are resolved by Max (`locatefile_extended` → absolute path) in the wrapper. Open question: does Live's TEMP-… copy survive reopening the set?
-- Panels are plain objects (never `background`), first in the box list so they sit behind.
+- Panels: only the section panels, `background 1`, first in the box list (proven by the legacy device). Never a full-size panel (it covered everything).
 - live.drop is a parameter of type 4 (file), invisible 2: it only takes drops that way, and is never stored.
 - Buttons send `bang`: the model reads any word as the default value ("grand bang" = "grand 1").
 - Max 8 jsui flattens array arguments: no `set_dash([..], 0)`.
