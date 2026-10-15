@@ -740,7 +740,11 @@ public:
                 if (q.rlo < 0) continue;
                 double tb = q.rlo + rng.u() * (q.rhi - q.rlo);
                 double tr = rng.u() < 0.3 ? 0 : rng.u();
-                if (p == LOOP) tb = rng.u() < 0.8 ? 0 : 0.05 + rng.u() * 0.25;
+                if (p == LOOP) {   // Loop is on in about 1 roll of 5; when it's off, no hit may loop (its range is 0 too)
+                    const bool on = rng.u() < 0.2;
+                    tb = on ? 0.05 + rng.u() * 0.25 : 0;
+                    tr = on && rng.u() < 0.5 ? rng.u() * 0.3 : 0;
+                }
                 if (p == PITCH) tr = rng.u() < 0.3 ? 0 : rng.u() * 0.25;
                 if (p == GLIDE) { tb = rng.u() < 0.7 ? 0 : rng.u() * 0.35; tr = rng.u() < 0.5 ? 0 : rng.u() * 0.3; }
                 ps.b[p] += (float)((tb - ps.b[p]) * amt);

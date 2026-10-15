@@ -436,7 +436,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15h (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15i (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 

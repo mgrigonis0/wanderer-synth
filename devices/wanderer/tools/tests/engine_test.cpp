@@ -263,6 +263,30 @@ static void testBuzz() {
     fails += expect(gap[1] < 25 && loop[1] < 25, "Buzz on: fast repeats and tiny loops are still possible");
 }
 
+// Random: Loop is a sometimes-thing. Off in most rolls, and then no hit loops through its range either
+static void testLoopShare() {
+    std::printf("random loop\n");
+    Rig rig;
+    rig.load(0, "/d.wav", drumLoop(125, 2, nullptr));
+    Rng r(9);
+    long hits = 0, looped = 0, rolls = 0, rollsLoop = 0;
+    for (int k = 0; k < 3000; k++) {
+        rig.m->rng.reseed(7000 + k);
+        rig.m->randomize(0, -1, 1.0);
+        const ParamSet& p = rig.m->files[0].ps;
+        bool any = false;
+        for (int h = 0; h < 50; h++) {
+            const double o = p.m[LOOP] > 0 ? r.u() * 2 - 1 : 0;
+            const double v = denormOf(LOOP, clampd(p.b[LOOP] + o * p.r[LOOP], 0, 1));
+            hits++;
+            if (v > 0.5) { looped++; any = true; }
+        }
+        rolls++; rollsLoop += any;
+    }
+    std::printf("    rolls with any looping hit %.0f%%, hits that loop %.0f%%\n", 100.0 * rollsLoop / rolls, 100.0 * looped / hits);
+    fails += expect(rollsLoop < rolls * 0.25 && looped < hits * 0.2, "Random: Loop in about 1 roll of 5, never on hits of the others");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -288,6 +312,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "clicks") testClicks();
     if (only.empty() || only == "buttons") testButtons();
     if (only.empty() || only == "buzz") testBuzz();
+    if (only.empty() || only == "loopshare") testLoopShare();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;
