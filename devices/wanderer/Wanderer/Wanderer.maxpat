@@ -1344,7 +1344,6 @@
 					],
 					"border": 0,
 					"rounded": 0,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1375,7 +1374,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1406,7 +1404,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1437,7 +1434,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1468,7 +1464,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1499,7 +1494,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1530,7 +1524,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},
@@ -1561,7 +1554,6 @@
 					],
 					"border": 0,
 					"rounded": 6,
-					"background": 1,
 					"ignoreclick": 1
 				}
 			},

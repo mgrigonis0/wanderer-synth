@@ -255,6 +255,22 @@ static void wnd_tick(t_wanderer* x) {
 }
 
 // ---------------------------------------------------------------------------------------------------
+static std::string resolve_path(const std::string& in) {
+    if (in.empty() || in == "none") return "";
+    char name[MAX_PATH_CHARS], full[MAX_PATH_CHARS];
+    if (in.find('/') != std::string::npos) {   // a path: Max style ("Macintosh HD:/...") or already native
+        if (path_nameconform(in.c_str(), full, PATH_STYLE_NATIVE, PATH_TYPE_ABSOLUTE) == 0) return full;
+        return in;
+    }
+    // a bare name: where Max finds it
+    std::snprintf(name, sizeof name, "%s", in.c_str());
+    short vol = 0;
+    t_fourcc type = 0;
+    if (locatefile_extended(name, &vol, &type, nullptr, 0) != 0) return "";
+    if (path_toabsolutesystempath(vol, name, full) != 0) return "";
+    return full;
+}
+
 static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
     std::vector<Model::Atom> a;
     for (long i = 0; i < argc; i++) {
@@ -263,7 +279,17 @@ static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
         else m.d = atom_getfloat(argv + i);
         a.push_back(m);
     }
-    if (s == gensym("drop") && !a.empty()) object_post((t_object*)x, "drop: %s", a[0].num ? "(a number)" : a[0].s.c_str());
+    // Live hands over a bare file name (a copy it keeps on Max's search path) or a Max-style path:
+    // turn either into a full system path before the engine sees it
+    if ((s == gensym("drop") || s == gensym("relinkpath")) && !a.empty() && !a[0].num) {
+        std::string full = resolve_path(a[0].s);
+        if (full.empty()) {
+            if (a[0].s != "none" && a[0].s != "bang") object_error((t_object*)x, "can't find the dropped file: %s", a[0].s.c_str());
+            return;
+        }
+        object_post((t_object*)x, "loading %s", full.c_str());
+        a[0].s = full;
+    }
     std::lock_guard<std::recursive_mutex> g(*x->mx);
     x->model->message(s->s_name, a);
 }
@@ -408,7 +434,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15b (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15c (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 

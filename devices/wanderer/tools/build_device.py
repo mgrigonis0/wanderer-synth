@@ -198,10 +198,10 @@ DEVICE_W = x - 5 + 6
 
 # background, then the panels (drawn first: behind everything)
 box("panel", (900, 20, 60, 30), ins=1, outs=0, pres=(0, 0, DEVICE_W, DEV_H), bgcolor=rgba(DEV_BG), border=0,
-    rounded=0, background=1, ignoreclick=1)
+    rounded=0, ignoreclick=1)
 for k in ORDER:
     box("panel", (970, 20, 40, 30), ins=1, outs=0, pres=(PX[k], PY, PANEL_W[k], PH), bgcolor=rgba(PANEL), border=0,
-        rounded=6, background=1, ignoreclick=1)
+        rounded=6, ignoreclick=1)
 
 
 def cellx(panel, i, offset=0):
