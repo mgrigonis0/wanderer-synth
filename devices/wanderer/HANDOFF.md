@@ -9,8 +9,8 @@ settings have a value, a per-hit range (scaled by Chaos) and a mode (fixed / rnd
 slots with Slide, global Quant, and an output chain (Even, Comp, Stereo, Volume, Limit).
 
 ## Current state
-- Build **2026-10-15g**, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
-- First Live test of 15a: engine loaded; drop did nothing (live.drop must be a file-type parameter, fixed), buttons did nothing (Live buttons send `bang`, fixed), labels truncated (cells widened to 44), `set_dash` errors (removed). 15b: section panels missing (marked background, Live doesn't draw those), drop got a bare TEMP-… file name. 15c: a full-size body panel covered the whole device. 15d: panels show. Drop still failed: the wrapper's locatefile can't find Live's TEMP-… name. 15e: drops go through `wanderer.drop.js` (Max's File object finds it, as the legacy brain did) and the Drop strip is taller and as wide as the file grid. 15e: Max's File opens the TEMP-… file but reports no folder; 15f passes the bare name to buffer~ (it finds it the same way, as the legacy device did). 15f: the model still dropped any name without a slash (a leftover guard); removed in 15g, with a test. Open: whether a TEMP-… name still resolves after reopening the set. Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
+- Build **2026-10-15h**, pushed; CI green; release `wanderer-latest` (wanderer-mac.zip, universal binary).
+- First Live test of 15a: engine loaded; drop did nothing (live.drop must be a file-type parameter, fixed), buttons did nothing (Live buttons send `bang`, fixed), labels truncated (cells widened to 44), `set_dash` errors (removed). 15b: section panels missing (marked background, Live doesn't draw those), drop got a bare TEMP-… file name. 15c: a full-size body panel covered the whole device. 15d: panels show. Drop still failed: the wrapper's locatefile can't find Live's TEMP-… name. 15e: drops go through `wanderer.drop.js` (Max's File object finds it, as the legacy brain did) and the Drop strip is taller and as wide as the file grid. 15e: Max's File opens the TEMP-… file but reports no folder; 15f passes the bare name to buffer~ (it finds it the same way, as the legacy device did). 15f: the model still dropped any name without a slash (a leftover guard); removed in 15g, with a test. 15g: drops work in Live. 15h: Allow **Buzz** (off by default). Open: whether a TEMP-… name still resolves after reopening the set. Offline tests all pass (detection, play start, Lock/Mutate/recall, save/restore, clicks, CPU 10 %).
 - Not verified anywhere but Live: the patch wiring (live.drop output, pattr dict save, live.observer, buffer~ loads),
   the jsui views' look, fonts (Ableton Sans Medium in jsui).
 
@@ -48,6 +48,7 @@ Even, Comp, Stereo, Volume, Limit, plus the hidden blob `State` (pattr).
 - Hits detection uses a plain and a brightened energy (hats on kick tails); Notes = log spectral flux + local median.
 - All fades S-shaped, ≥ 3 ms attack / 4 ms release, 5 ms cut fade; resonance fades out above ~10 kHz (no ringing near Nyquist).
 - Detection runs on a worker thread from a mono copy; the overview peaks come from the engine (no buffer reads in JS).
+- Buzz (global Allow, off): repeats never faster than their spacing nor closer than 30 ms; loops >= 50 ms (shorter parts play once); grains ±25 % length wobble. Measured: half of Random rolls buzzed before. On = the old behaviour.
 - Clear all needs two presses within 2 s (button shows "Sure?").
 
 ## Rejected approaches

@@ -236,6 +236,33 @@ static void testButtons() {
     fails += expect(rig.m->files[5].state == F_READY && rig.m->files[5].tab.ns > 4, "a dropped bare file name loads and slices");
 }
 
+// Buzz off: nothing repeats faster than ~30 ms (repeats) or loops shorter than 50 ms; Buzz on: it may
+static void testBuzz() {
+    std::printf("buzz\n");
+    double gap[2], loop[2];
+    for (int buzz = 0; buzz < 2; buzz++) {
+        Rig rig;
+        rig.keep = false;
+        rig.tempo(174);
+        rig.load(0, "/d.wav", drumLoop(174, 2, nullptr));
+        rig.msg("gbuzz", {(double)buzz});
+        rig.play(true);
+        for (int k = 0; k < 120; k++) {
+            rig.m->rng.reseed(500 + k);
+            rig.m->randomize(0, -1, 1.0);
+            ParamSet& ps = rig.m->files[0].ps;
+            ps.b[RCHANCE] = 0.9f; ps.b[RCOUNT] = 1.f; ps.b[RSHAPE] = 1.f; ps.b[RSPACE] = 1;   // fastest bursts
+            ps.b[LOOP] = 0.05f; ps.r[LOOP] = 0;                                                 // tiny loops
+            rig.m->sendParams(0, 3);
+            rig.run(0.6);
+        }
+        gap[buzz] = rig.pl->minRepGapMs; loop[buzz] = rig.pl->minLoopMs;
+        std::printf("    Buzz %s: shortest repeat gap %.1f ms, shortest loop %.1f ms\n", buzz ? "on " : "off", gap[buzz], loop[buzz]);
+    }
+    fails += expect(gap[0] >= 29.9 && loop[0] >= 49.9, "Buzz off: repeats >= 30 ms apart, loops >= 50 ms");
+    fails += expect(gap[1] < 25 && loop[1] < 25, "Buzz on: fast repeats and tiny loops are still possible");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -260,6 +287,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "save") testSaveRestore();
     if (only.empty() || only == "clicks") testClicks();
     if (only.empty() || only == "buttons") testButtons();
+    if (only.empty() || only == "buzz") testBuzz();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

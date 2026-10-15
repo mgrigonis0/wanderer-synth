@@ -22,7 +22,8 @@ struct Voice {
     double scan = 1, gsz = 1000, gj = 0, gsp = 0, seed = 0;
     int gd = 1;
     double s1l = 0, s2l = 0, s1r = 0, s2r = 0;
-    double gph[4] = {}, gst[4] = {}, grt[4] = {};
+    double gph[4] = {}, gst[4] = {}, grt[4] = {}, gln[4] = {1, 1, 1, 1};
+    bool buzz = false;
     bool gal[4] = {};
     // control rate (every CR samples)
     int crc = 0;
@@ -155,6 +156,7 @@ public:
     double P = 0, prevph = 0, wnps = 0;
     bool wasplayT = false, wasplayF = false;
     double sl = 0, sldur = 0;
+    double minRepGapMs = 1e9, minLoopMs = 1e9;   // measured by the tests
     bool sliding = false;
 
 private:
@@ -515,11 +517,19 @@ private:
         const bool dorep = prim && hurep < hvRchance && hslice >= 0;
         double spc = hvRspace == 0 ? 0.03125 : (hvRspace == 1 ? 0.015625 : 0.0208333);
         if (dorep) {
+            // Buzz off: a burst never gets faster than its spacing (Shape > 0 starts slower and speeds up TO it),
+            // and never closer than 30 ms: it stays a rhythm, never a pitched tone
+            const bool buzz = g[G_BUZZ] > 0.5;
+            const double lift = buzz ? 0 : std::max(0.0, hvRshape);
+            const double floorWn = buzz ? 0 : 0.030 * sr * wnps;
+            auto gapAt = [&](int k) { return std::max(floorWn, spc * std::pow(2.0, lift - hvRshape * k / std::max(1, rcnt - 1))); };
             double t = pos;
             for (int k = 0; k < rcnt; k++) {
-                t += spc * std::pow(2.0, -hvRshape * k / std::max(1, rcnt - 1));
+                const double gk = gapAt(k);
+                t += gk;
                 F.rpt[k] = t;
-                F.rgap[k] = spc * std::pow(2.0, -hvRshape * std::min(k + 1, rcnt - 1) / std::max(1, rcnt - 1));
+                F.rgap[k] = gapAt(std::min(k + 1, rcnt - 1));
+                minRepGapMs = std::min(minRepGapMs, gk / std::max(1e-12, wnps) / sr * 1000);
             }
             F.rn = rcnt;
         }
@@ -599,8 +609,12 @@ private:
         if (nat + ndc > ngl) { double k2 = ngl / (nat + ndc); nat = std::max(0.002 * sr, nat * k2); ndc = std::max(0.003 * sr, ndc * k2); }
         const double th = (hvPan + 1) * M_PI * 0.25;
         double nla = 0, nlb = 0;
-        if (hvLoop > 0) {
-            const double ll = std::max(256.0, hvLoop * (rb0 - ra0));
+        // Buzz off: a loop is never shorter than 50 ms as heard (a stutter, never a tone); a part too short for that
+        // plays once instead of looping
+        const double minLoop = g[G_BUZZ] > 0.5 ? 0 : 0.05 * bsr * spdur;
+        if (hvLoop > 0 && rb0 - ra0 >= minLoop) {
+            const double ll = std::min(rb0 - ra0, std::max(std::max(256.0, hvLoop * (rb0 - ra0)), minLoop));
+            minLoopMs = std::min(minLoopMs, ll / (bsr * spdur) * 1000);
             if (ndr > 0) { nla = ra0; nlb = std::min(rb0, ra0 + ll); }
             else { nlb = rb0; nla = std::max(ra0, rb0 - ll); }
         }
@@ -636,7 +650,8 @@ private:
         v.scan = hvScan; v.gsz = std::max(64.0, hvGsize * sr / 1000);
         v.gd = (int)clampd(std::floor(hvGdens + 0.5), 1, 4);
         v.gj = hvGjit; v.gsp = hvGspread; v.seed = hseed;
-        for (int k = 0; k < 4; k++) { v.gph[k] = (double)k / v.gd; v.gal[k] = false; }
+        for (int k = 0; k < 4; k++) { v.gph[k] = (double)k / v.gd; v.gal[k] = false; v.gln[k] = 1; }
+        v.buzz = g[G_BUZZ] > 0.5;
         v.crc = 0;
         F.lastslice = hslice;
         F.lastsemis = semis;
@@ -717,7 +732,7 @@ private:
                 const double gnorm = v.gd < 2 ? 1 : 2.0 / v.gd;
                 double gsl = 0, gsr = 0;
                 for (int h = 0; h < 4; h++) {
-                    double gph = v.gph[h] + 1 / v.gsz;
+                    double gph = v.gph[h] + 1 / (v.gsz * v.gln[h]);
                     const bool gwrap = gph >= 1;
                     if (gwrap) gph -= 1;
                     const bool on = h < v.gd;
@@ -729,11 +744,14 @@ private:
                         const double gmid = (glo + ghi) * 0.5;
                         v.gst[h] = clampd(v.pos + (hash2(sd, 1.1) - 0.5) * 2 * v.gj * v.gsz, std::min(glo, gmid), std::max(ghi, gmid));
                         v.grt[h] = gnrt;
+                        // Buzz off: every grain a little longer or shorter (±25 %), so grains never fall into an even
+                        // rhythm that is heard as a pitch
+                        v.gln[h] = v.buzz ? 1.0 : 0.75 + 0.5 * hash2(sd, 5.7);
                         v.gal[h] = true;
                     }
                     v.gph[h] = gph;
                     if (!on) continue;
-                    const double rp = v.gst[h] + v.dir * gph * v.gsz * v.grt[h] * bsrr;
+                    const double rp = v.gst[h] + v.dir * gph * v.gsz * v.gln[h] * v.grt[h] * bsrr;
                     double gl0, gr0;
                     readAt(w, nfr, nch, rp, gl0, gr0);
                     const double gw = (0.5 - 0.5 * std::cos(2 * M_PI * gph)) * gnorm;
