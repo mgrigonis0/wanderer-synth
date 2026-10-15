@@ -269,7 +269,8 @@ static void wnd_loaded(t_wanderer* x, long f) {
 }
 
 static void wnd_dictionary(t_wanderer* x, t_symbol* name) {
-    if (x->saving || name == x->stateName) { if (!x->gotState && name == x->stateName) {} return; }
+    // our own dict echoing back, or a second answer: the state is read once per load
+    if (x->saving || name == x->stateName || x->gotState) return;
     t_dictionary* d = dictobj_findregistered_retain(name);
     if (!d) return;
     StateDoc doc;

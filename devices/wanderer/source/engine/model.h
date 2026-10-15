@@ -40,7 +40,10 @@ struct SliceResult {
     std::vector<long> starts;
     std::vector<float> gain;
     std::vector<std::array<float, NATK>> atk;
+    std::vector<float> peaks;   // waveform overview: NPEAK columns of (max, min)
 };
+
+constexpr int NPEAK = 400;
 
 struct Host {
     virtual ~Host() {}
@@ -78,6 +81,15 @@ inline SliceResult runSliceJob(Analysis& an, const SliceJob& job) {
         }
     }
     if (res.starts.empty()) res.starts.push_back(0);
+    // the overview the waveform view draws
+    res.peaks.assign(NPEAK * 2, 0.f);
+    const long nfr = res.frames;
+    for (int c = 0; c < NPEAK && nfr > 0; c++) {
+        const long a = nfr * c / NPEAK, b = std::max(a + 1, nfr * (c + 1) / NPEAK);
+        float mx = -1, mn = 1;
+        for (long i = a; i < b && i < nfr; i++) { const float v = an.mono[(size_t)i]; mx = std::max(mx, v); mn = std::min(mn, v); }
+        res.peaks[(size_t)c * 2] = mx; res.peaks[(size_t)c * 2 + 1] = mn;
+    }
     const size_t ns = res.starts.size();
     for (size_t i = 0; i < ns; i++) {
         const long a = res.starts[i], b = i + 1 < ns ? res.starts[i + 1] : res.frames;
@@ -108,6 +120,7 @@ struct FileModel {
     bool lock = false, mute = false;
     Pattern pat;
     std::deque<Hit> played;             // the last 512 free hits (ph = song position)
+    std::vector<float> peaks;           // waveform overview
     double resliceAt = -1;              // debounce (ms)
 };
 
@@ -252,6 +265,7 @@ public:
             } else { for (int i = 0; i < ns; i++) { t.en[i] = 1; t.w[i] = 0.5f; } }
         } else { for (int i = 0; i < ns; i++) { t.en[i] = 1; t.w[i] = 0.5f; } }
         F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear();
+        F.peaks = r.peaks;
         F.state = F_READY;
         sendTable(f);
         sendTiming(f);
@@ -932,6 +946,7 @@ public:
         std::vector<double> st, en, w;
         for (int i = 0; i < F.tab.ns; i++) { st.push_back(F.tab.start[i]); en.push_back(F.tab.en[i]); w.push_back(F.tab.w[i]); }
         ui("wstarts", st); ui("wen", en); ui("ww", w);
+        ui("wpeaks", std::vector<double>(F.peaks.begin(), F.peaks.end()));
         status(sel, std::to_string(F.tab.ns) + " slices");
     }
 

@@ -1,0 +1,73 @@
+name: wanderer
+
+on:
+  push:
+    branches: [main]
+    paths: ["devices/wanderer/**", ".github/workflows/wanderer.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  engine-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline engine tests
+        run: |
+          g++ -std=c++17 -O2 -Wall -o engine_test devices/wanderer/tools/tests/engine_test.cpp -lpthread
+          ./engine_test
+
+  mac:
+    runs-on: macos-14
+    needs: engine-test
+    defaults:
+      run:
+        working-directory: devices/wanderer
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get max-sdk-base
+        run: |
+          git clone https://github.com/Cycling74/max-sdk-base max-sdk-base
+          git -C max-sdk-base checkout c03a292
+
+      - name: "Configure (universal: Intel + Apple Silicon)"
+        run: >
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Check the external
+        run: |
+          ls -la externals
+          file "externals/wanderer~.mxo/Contents/MacOS/wanderer~"
+
+      - name: Package
+        run: |
+          python3 tools/build_device.py
+          mkdir -p dist/Wanderer
+          cp -R "externals/wanderer~.mxo" dist/Wanderer/
+          cp Wanderer/Wanderer.amxd Wanderer/*.js dist/Wanderer/
+          cp INSTALL.md dist/Wanderer/
+          cd dist && ditto -c -k --sequesterRsrc --keepParent Wanderer ../wanderer-mac.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wanderer-mac
+          path: devices/wanderer/wanderer-mac.zip
+
+      - name: Publish as the "wanderer-latest" download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: wanderer-latest
+          name: Wanderer — latest build
+          prerelease: true
+          files: devices/wanderer/wanderer-mac.zip
+          body: |
+            Automatic build from ${{ github.sha }}.
+            Download wanderer-mac.zip, unzip it, and follow INSTALL.md inside.
