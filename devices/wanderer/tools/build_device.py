@@ -180,7 +180,8 @@ DEV_H = 169
 PY, PH = 4, 161               # panels
 Y0 = PY + 4                   # inner top
 CELL, CG = 44, 3              # global sections: wide enough for Live's labels (1/16, Notes, Pitch)
-FC = 36                       # files column
+FC = CELL                     # files column: the same cell width as everywhere else
+DROPH = 30                    # the Drop strip: tall enough for Live's legend + the file name
 WAVE_W, PAGE_W = 250, 215     # the two jsui views (page: tabs 36 + 4 + 6 + 4 cells of 40 + gaps)
 WC = (WAVE_W - 6 * 3) / 7     # the strip under the waveform: 7 cells
 ROWA, ROWB, STRIP_Y = Y0 + 16, Y0 + 74, Y0 + 138
@@ -274,13 +275,17 @@ def button(name, text_, pres, color, toggle=False, param=True, init=0, longn=Non
 
 # ---- files ----
 fx = PX["files"] + IP
-files = box("jsui", (40, 500, 36, 134), ins=1, outs=1, pres=(fx, Y0, FC, 134), filename="wanderer.files.js",
+FILES_H = STRIP_Y + SH - DROPH - 4 - Y0
+files = box("jsui", (40, 500, 44, 120), ins=1, outs=1, pres=(fx, Y0, FC, FILES_H), filename="wanderer.files.js",
             parameter_enable=0, border=0, **info("files", "Files"))
 # live.drop only takes drops as a parameter (type "file"); invisible = never stored, never re-sent at load
-drop = box("live.drop", (40, 650, 36, 15), ins=1, outs=2, pres=(fx, STRIP_Y, FC, SH), legend="Drop", varname="drop",
+drop = box("live.drop", (40, 650, 44, 30), ins=1, outs=2, pres=(fx, STRIP_Y + SH - DROPH, FC, DROPH), legend="Drop", varname="drop",
            parameter_enable=1, saved_attribute_attributes={"valueof": {"parameter_invisible": 2, "parameter_longname": "Drop",
                                                                       "parameter_shortname": "Drop", "parameter_type": 4}}, **info("drop", "Drop"), fontsize=8.0, textcolor=rgba(C["teal"]), bordercolor=rgba(C["teal"], 0.8))
-to_engine("drop", drop, 40, 680)
+# the name Live hands over -> a full path (Max's File object finds Live's copies), then the engine
+pdrop = obj("prepend drop", (40, 690, 80, 22))
+jdrop = obj("js wanderer.drop.js", (40, 720, 120, 22))
+wire(drop, 0, pdrop, 0); wire(pdrop, 0, jdrop, 0); wire(jdrop, 0, eng, 0)
 
 # ---- waveform + per-file buttons ----
 wx = PX["wave"] + IP
@@ -443,7 +448,7 @@ patcher = {
         "boxes": boxes, "lines": lines,
         "dependency_cache": [
             {"name": n, "bootpath": ".", "patcherrelativepath": ".", "type": "TEXT", "implicit": 1}
-            for n in ("wanderer.page.js", "wanderer.wave.js", "wanderer.files.js", "wanderer.memory.js", "wanderer.gr.js")
+            for n in ("wanderer.page.js", "wanderer.wave.js", "wanderer.files.js", "wanderer.memory.js", "wanderer.gr.js", "wanderer.drop.js")
         ] + [{"name": "wanderer~.mxo", "type": "iLaX"}],
         "latency": 0, "is_mpe": 0, "minimum_live_version": "", "minimum_max_version": "",
         "platform_compatibility": 0,
