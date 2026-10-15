@@ -18,7 +18,7 @@
 		"openrect": [
 			0.0,
 			0.0,
-			1046.0,
+			1136.0,
 			169.0
 		],
 		"bglocked": 0,
@@ -38,7 +38,7 @@
 		"boxanimatetime": 200,
 		"enablehscroll": 1,
 		"enablevscroll": 1,
-		"devicewidth": 1046.0,
+		"devicewidth": 1136.0,
 		"description": "Wanderer",
 		"digest": "",
 		"tags": "",
@@ -1333,7 +1333,7 @@
 					"presentation_rect": [
 						0.0,
 						0.0,
-						1046.0,
+						1136.0,
 						169.0
 					],
 					"bgcolor": [
@@ -1395,7 +1395,7 @@
 					"presentation_rect": [
 						59.0,
 						4.0,
-						282.0,
+						262.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1424,9 +1424,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						346.0,
+						326.0,
 						4.0,
-						205.0,
+						227.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1455,9 +1455,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						556.0,
+						558.0,
 						4.0,
-						247.0,
+						295.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1486,9 +1486,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						808.0,
+						858.0,
 						4.0,
-						87.0,
+						103.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1517,9 +1517,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						900.0,
+						966.0,
 						4.0,
-						48.0,
+						56.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1548,9 +1548,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						953.0,
+						1027.0,
 						4.0,
-						87.0,
+						103.0,
 						161.0
 					],
 					"bgcolor": [
@@ -1599,7 +1599,7 @@
 					"id": "obj-78",
 					"maxclass": "live.drop",
 					"numinlets": 1,
-					"numoutlets": 1,
+					"numoutlets": 2,
 					"patching_rect": [
 						40.0,
 						650.0,
@@ -1607,6 +1607,7 @@
 						15.0
 					],
 					"outlettype": [
+						"",
 						""
 					],
 					"presentation": 1,
@@ -1618,7 +1619,15 @@
 					],
 					"legend": "Drop",
 					"varname": "drop",
-					"parameter_enable": 0,
+					"parameter_enable": 1,
+					"saved_attribute_attributes": {
+						"valueof": {
+							"parameter_invisible": 2,
+							"parameter_longname": "Drop",
+							"parameter_shortname": "Drop",
+							"parameter_type": 4
+						}
+					},
 					"annotation": "Drop audio files here. A file goes into the selected slot if it is empty, otherwise into the next empty one.",
 					"annotation_name": "Drop",
 					"fontsize": 8.0,
@@ -1663,7 +1672,7 @@
 					"patching_rect": [
 						100.0,
 						500.0,
-						270.0,
+						250.0,
 						134.0
 					],
 					"outlettype": [
@@ -1673,7 +1682,7 @@
 					"presentation_rect": [
 						65.0,
 						8.0,
-						270.0,
+						250.0,
 						134.0
 					],
 					"filename": "wanderer.wave.js",
@@ -1704,7 +1713,7 @@
 					"presentation_rect": [
 						65.0,
 						146.0,
-						36.0,
+						33.142857142857146,
 						15.0
 					],
 					"texton": "Free",
@@ -1765,9 +1774,9 @@
 					"text": "Lock",
 					"presentation": 1,
 					"presentation_rect": [
-						104.0,
+						101.14285714285714,
 						146.0,
-						36.0,
+						33.142857142857146,
 						15.0
 					],
 					"texton": "Lock",
@@ -1900,9 +1909,9 @@
 					"text": "Mute",
 					"presentation": 1,
 					"presentation_rect": [
-						143.0,
+						137.28571428571428,
 						146.0,
-						36.0,
+						33.142857142857146,
 						15.0
 					],
 					"texton": "Mute",
@@ -1994,9 +2003,9 @@
 					"text": "Init",
 					"presentation": 1,
 					"presentation_rect": [
-						182.0,
+						173.42857142857144,
 						146.0,
-						36.0,
+						33.142857142857146,
 						15.0
 					],
 					"texton": "Init",
@@ -2088,9 +2097,9 @@
 					"text": "Clear",
 					"presentation": 1,
 					"presentation_rect": [
-						221.0,
+						209.57142857142858,
 						146.0,
-						36.0,
+						33.142857142857146,
 						15.0
 					],
 					"texton": "Clear",
@@ -2182,9 +2191,9 @@
 					"text": "Random file",
 					"presentation": 1,
 					"presentation_rect": [
-						260.0,
+						245.71428571428572,
 						146.0,
-						75.0,
+						69.28571428571429,
 						15.0
 					],
 					"texton": "Random file",
@@ -2266,7 +2275,7 @@
 					"patching_rect": [
 						400.0,
 						500.0,
-						193.0,
+						215.0,
 						153.0
 					],
 					"outlettype": [
@@ -2274,9 +2283,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						352.0,
+						332.0,
 						8.0,
-						193.0,
+						215.0,
 						153.0
 					],
 					"filename": "wanderer.page.js",
@@ -2301,9 +2310,9 @@
 					"text": "GROOVE",
 					"presentation": 1,
 					"presentation_rect": [
-						559.0,
+						561.0,
 						5.0,
-						120.0,
+						144.0,
 						14.0
 					],
 					"textcolor": [
@@ -2331,9 +2340,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						562.0,
+						564.0,
 						19.0,
-						114.0,
+						138.0,
 						2.0
 					],
 					"bgcolor": [
@@ -2362,9 +2371,9 @@
 					"text": "SHAPE",
 					"presentation": 1,
 					"presentation_rect": [
-						680.0,
+						706.0,
 						5.0,
-						120.0,
+						144.0,
 						14.0
 					],
 					"textcolor": [
@@ -2392,9 +2401,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						683.0,
+						709.0,
 						19.0,
-						114.0,
+						138.0,
 						2.0
 					],
 					"bgcolor": [
@@ -2422,7 +2431,7 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						679.0,
+						705.0,
 						24.0,
 						1.0,
 						114.0
@@ -2456,9 +2465,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						562.0,
+						564.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Quant",
@@ -2544,9 +2553,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						601.0,
+						611.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Density",
@@ -2632,9 +2641,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						640.0,
+						658.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Length",
@@ -2717,9 +2726,9 @@
 					"text": "Quant to",
 					"presentation": 1,
 					"presentation_rect": [
-						560.0,
+						562.0,
 						80.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -2747,9 +2756,9 @@
 					"text": "Mode",
 					"presentation": 1,
 					"presentation_rect": [
-						599.0,
+						609.0,
 						80.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -2777,9 +2786,9 @@
 					"text": "Bars",
 					"presentation": 1,
 					"presentation_rect": [
-						638.0,
+						656.0,
 						80.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -2811,9 +2820,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						562.0,
+						564.0,
 						95.0,
-						36.0,
+						44.0,
 						27.0
 					],
 					"num_lines_patching": 2,
@@ -2851,10 +2860,10 @@
 						0.85,
 						1.0
 					],
-					"fontsize": 8.0,
+					"fontsize": 7.5,
 					"rounded": 3,
-					"spacing_x": 3,
-					"spacing_y": 3,
+					"spacing_x": 2,
+					"spacing_y": 2,
 					"parameter_enable": 1,
 					"saved_attribute_attributes": {
 						"valueof": {
@@ -2915,9 +2924,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						601.0,
+						611.0,
 						95.0,
-						36.0,
+						44.0,
 						27.0
 					],
 					"num_lines_patching": 2,
@@ -2955,10 +2964,10 @@
 						0.85,
 						1.0
 					],
-					"fontsize": 8.0,
+					"fontsize": 7.5,
 					"rounded": 3,
-					"spacing_x": 3,
-					"spacing_y": 3,
+					"spacing_x": 2,
+					"spacing_y": 2,
 					"parameter_enable": 1,
 					"saved_attribute_attributes": {
 						"valueof": {
@@ -3017,9 +3026,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						640.0,
+						658.0,
 						95.0,
-						36.0,
+						44.0,
 						27.0
 					],
 					"num_lines_patching": 2,
@@ -3057,10 +3066,10 @@
 						0.85,
 						1.0
 					],
-					"fontsize": 8.0,
+					"fontsize": 7.5,
 					"rounded": 3,
-					"spacing_x": 3,
-					"spacing_y": 3,
+					"spacing_x": 2,
+					"spacing_y": 2,
 					"parameter_enable": 1,
 					"saved_attribute_attributes": {
 						"valueof": {
@@ -3120,9 +3129,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						683.0,
+						709.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Macro",
@@ -3208,9 +3217,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						722.0,
+						756.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Chaos",
@@ -3296,9 +3305,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						761.0,
+						803.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Mutate",
@@ -3384,9 +3393,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						683.0,
+						709.0,
 						82.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Pitch",
@@ -3469,9 +3478,9 @@
 					"text": "Scale",
 					"presentation": 1,
 					"presentation_rect": [
-						720.0,
+						754.0,
 						80.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -3503,9 +3512,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						722.0,
+						756.0,
 						95.0,
-						36.0,
+						44.0,
 						14.0
 					],
 					"varname": "Scale",
@@ -3544,18 +3553,18 @@
 							"parameter_initial_enable": 1,
 							"parameter_unitstyle": 9,
 							"parameter_enum": [
-								"Chromatic",
+								"Chrom",
 								"Major",
 								"Minor",
 								"Dorian",
-								"Phrygian",
+								"Phryg",
 								"Lydian",
-								"Mixolydian",
-								"Harm minor",
-								"Maj penta",
-								"Min penta",
+								"Mixo",
+								"HarMin",
+								"MajPen",
+								"MinPen",
 								"Fifths",
-								"Octaves"
+								"Octave"
 							]
 						}
 					}
@@ -3594,9 +3603,9 @@
 					"text": "Allow",
 					"presentation": 1,
 					"presentation_rect": [
-						759.0,
+						801.0,
 						80.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -3628,9 +3637,9 @@
 					"text": "Trip",
 					"presentation": 1,
 					"presentation_rect": [
-						761.0,
+						803.0,
 						95.0,
-						16.5,
+						20.5,
 						12.0
 					],
 					"texton": "Trip",
@@ -3740,9 +3749,9 @@
 					"text": "Dot",
 					"presentation": 1,
 					"presentation_rect": [
-						780.5,
+						826.5,
 						95.0,
-						16.5,
+						20.5,
 						12.0
 					],
 					"texton": "Dot",
@@ -3852,9 +3861,9 @@
 					"text": "Pitch",
 					"presentation": 1,
 					"presentation_rect": [
-						761.0,
+						803.0,
 						110.0,
-						16.5,
+						20.5,
 						12.0
 					],
 					"texton": "Pitch",
@@ -3964,9 +3973,9 @@
 					"text": "Rev",
 					"presentation": 1,
 					"presentation_rect": [
-						780.5,
+						826.5,
 						110.0,
-						16.5,
+						20.5,
 						12.0
 					],
 					"texton": "Rev",
@@ -4076,9 +4085,9 @@
 					"text": "Random all",
 					"presentation": 1,
 					"presentation_rect": [
-						562.0,
+						564.0,
 						146.0,
-						75.0,
+						91.0,
 						15.0
 					],
 					"texton": "Random all",
@@ -4187,9 +4196,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						640.0,
+						658.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"varname": "Random Depth",
@@ -4269,9 +4278,9 @@
 					"text": "Clear all",
 					"presentation": 1,
 					"presentation_rect": [
-						761.0,
+						803.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"texton": "Clear all",
@@ -4379,9 +4388,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						814.0,
+						864.0,
 						8.0,
-						75.0,
+						91.0,
 						112.0
 					],
 					"filename": "wanderer.memory.js",
@@ -4406,9 +4415,9 @@
 					"text": "Slide",
 					"presentation": 1,
 					"presentation_rect": [
-						812.0,
+						862.0,
 						125.0,
-						40.0,
+						48.0,
 						13.0
 					],
 					"textcolor": [
@@ -4440,9 +4449,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						853.0,
+						911.0,
 						126.0,
-						36.0,
+						44.0,
 						14.0
 					],
 					"varname": "Slide",
@@ -4481,13 +4490,13 @@
 							"parameter_initial_enable": 1,
 							"parameter_unitstyle": 9,
 							"parameter_enum": [
-								"Instant",
-								"1/4 bar",
+								"Off",
+								"1/4",
 								"1 bar",
-								"2 bars",
-								"4 bars",
-								"8 bars",
-								"16 bars"
+								"2 bar",
+								"4 bar",
+								"8 bar",
+								"16 bar"
 							]
 						}
 					}
@@ -4530,9 +4539,9 @@
 					"text": "Store",
 					"presentation": 1,
 					"presentation_rect": [
-						814.0,
+						864.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"texton": "Store",
@@ -4642,9 +4651,9 @@
 					"text": "Clear",
 					"presentation": 1,
 					"presentation_rect": [
-						853.0,
+						911.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"texton": "Clear",
@@ -4750,9 +4759,9 @@
 					"text": "DETECT",
 					"presentation": 1,
 					"presentation_rect": [
-						903.0,
+						969.0,
 						5.0,
-						42.0,
+						50.0,
 						14.0
 					],
 					"textcolor": [
@@ -4780,9 +4789,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						906.0,
+						972.0,
 						19.0,
-						36.0,
+						44.0,
 						2.0
 					],
 					"bgcolor": [
@@ -4814,9 +4823,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						906.0,
+						972.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Detect Sens",
@@ -4902,9 +4911,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						906.0,
+						972.0,
 						82.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Detect Min Len",
@@ -4991,9 +5000,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						906.0,
+						972.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"num_lines_patching": 1,
@@ -5031,10 +5040,10 @@
 						0.85,
 						1.0
 					],
-					"fontsize": 8.0,
+					"fontsize": 7.0,
 					"rounded": 3,
-					"spacing_x": 3,
-					"spacing_y": 3,
+					"spacing_x": 2,
+					"spacing_y": 2,
 					"parameter_enable": 1,
 					"saved_attribute_attributes": {
 						"valueof": {
@@ -5089,9 +5098,9 @@
 					"text": "OUT",
 					"presentation": 1,
 					"presentation_rect": [
-						956.0,
+						1030.0,
 						5.0,
-						81.0,
+						97.0,
 						14.0
 					],
 					"textcolor": [
@@ -5119,9 +5128,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						959.0,
+						1033.0,
 						19.0,
-						75.0,
+						91.0,
 						2.0
 					],
 					"bgcolor": [
@@ -5153,9 +5162,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						959.0,
+						1033.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Even",
@@ -5241,9 +5250,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						998.0,
+						1080.0,
 						24.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Comp",
@@ -5325,10 +5334,10 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						1001.0,
-						75.0,
-						30.0,
-						4.0
+						1086.0,
+						71.0,
+						32.0,
+						3.0
 					],
 					"filename": "wanderer.gr.js",
 					"parameter_enable": 0,
@@ -5353,9 +5362,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						959.0,
+						1033.0,
 						82.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Stereo",
@@ -5441,9 +5450,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						998.0,
+						1080.0,
 						82.0,
-						36.0,
+						44.0,
 						50.0
 					],
 					"varname": "Volume",
@@ -5530,9 +5539,9 @@
 					"text": "Limit",
 					"presentation": 1,
 					"presentation_rect": [
-						959.0,
+						1033.0,
 						146.0,
-						36.0,
+						44.0,
 						15.0
 					],
 					"texton": "Limit",
@@ -5640,9 +5649,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						998.0,
+						1080.0,
 						148.0,
-						36.0,
+						44.0,
 						5.0
 					],
 					"orientation": 1,
@@ -5690,9 +5699,9 @@
 					],
 					"presentation": 1,
 					"presentation_rect": [
-						998.0,
+						1080.0,
 						155.0,
-						36.0,
+						44.0,
 						5.0
 					],
 					"orientation": 1,

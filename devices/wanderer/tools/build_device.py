@@ -179,11 +179,14 @@ wire(route, 5, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
 DEV_H = 169
 PY, PH = 4, 161               # panels
 Y0 = PY + 4                   # inner top
-CELL, CG = 36, 3
+CELL, CG = 44, 3              # global sections: wide enough for Live's labels (1/16, Notes, Pitch)
+FC = 36                       # files column
+WAVE_W, PAGE_W = 250, 215     # the two jsui views (page: tabs 36 + 4 + 6 + 4 cells of 40 + gaps)
+WC = (WAVE_W - 6 * 3) / 7     # the strip under the waveform: 7 cells
 ROWA, ROWB, STRIP_Y = Y0 + 16, Y0 + 74, Y0 + 138
 SH = 15                       # strip height
 IP = 6                        # panel inner padding
-PANEL_W = {"files": 48, "wave": 282, "page": 205, "master": 2 * IP + 3 * CELL + 2 * CG + 3 + 1 + 3 + 3 * CELL + 2 * CG,
+PANEL_W = {"files": 2 * IP + FC, "wave": 2 * IP + WAVE_W, "page": 2 * IP + PAGE_W, "master": 2 * IP + 3 * CELL + 2 * CG + 3 + 1 + 3 + 3 * CELL + 2 * CG,
            "memory": 2 * IP + 2 * CELL + CG, "detect": 2 * IP + CELL, "out": 2 * IP + 2 * CELL + CG}
 ORDER = ["files", "wave", "page", "master", "memory", "detect", "out"]
 PX = {}
@@ -247,7 +250,7 @@ def tab(name, longn, short, items, init, color, pres, lines_, param=True, at=(0,
     t = box("live.tab", (1300 + at[0], 600 + at[1], 60, 30), ins=1, outs=3, outtypes=["", "", "float"], pres=pres,
             num_lines_patching=lines_, num_lines_presentation=lines_, varname=longn, **info(name, longn),
             activebgoncolor=rgba(color), activetextoncolor=rgba(INK), bgcolor=rgba(BTN), bgoncolor=rgba(color),
-            textcolor=rgba((0.85, 0.85, 0.85)), fontsize=8.0, rounded=3, spacing_x=3, spacing_y=3, **extra)
+            textcolor=rgba((0.85, 0.85, 0.85)), fontsize=7.5, rounded=3, spacing_x=2, spacing_y=2, **extra)
     ctl[name] = t
     if param:
         bang_at_init.append(t)
@@ -271,22 +274,24 @@ def button(name, text_, pres, color, toggle=False, param=True, init=0, longn=Non
 
 # ---- files ----
 fx = PX["files"] + IP
-files = box("jsui", (40, 500, 36, 134), ins=1, outs=1, pres=(fx, Y0, CELL, 134), filename="wanderer.files.js",
+files = box("jsui", (40, 500, 36, 134), ins=1, outs=1, pres=(fx, Y0, FC, 134), filename="wanderer.files.js",
             parameter_enable=0, border=0, **info("files", "Files"))
-drop = box("live.drop", (40, 650, 36, 15), ins=1, outs=1, pres=(fx, STRIP_Y, CELL, SH), legend="Drop", varname="drop",
-           parameter_enable=0, **info("drop", "Drop"), fontsize=8.0, textcolor=rgba(C["teal"]), bordercolor=rgba(C["teal"], 0.8))
+# live.drop only takes drops as a parameter (type "file"); invisible = never stored, never re-sent at load
+drop = box("live.drop", (40, 650, 36, 15), ins=1, outs=2, pres=(fx, STRIP_Y, FC, SH), legend="Drop", varname="drop",
+           parameter_enable=1, saved_attribute_attributes={"valueof": {"parameter_invisible": 2, "parameter_longname": "Drop",
+                                                                      "parameter_shortname": "Drop", "parameter_type": 4}}, **info("drop", "Drop"), fontsize=8.0, textcolor=rgba(C["teal"]), bordercolor=rgba(C["teal"], 0.8))
 to_engine("drop", drop, 40, 680)
 
 # ---- waveform + per-file buttons ----
 wx = PX["wave"] + IP
-wave = box("jsui", (100, 500, 270, 134), ins=1, outs=1, pres=(wx, Y0, 270, 134), filename="wanderer.wave.js",
+wave = box("jsui", (100, 500, WAVE_W, 134), ins=1, outs=1, pres=(wx, Y0, WAVE_W, 134), filename="wanderer.wave.js",
            parameter_enable=0, border=0, **info("wave", "Waveform"))
 # Free / Lock of the selected file: two buttons that show the file's state ("fstate" from the engine sets them)
-ffree = box("live.text", (1500, 560, 60, 17), ins=1, outs=2, outtypes=["", ""], pres=(cellx("wave", 0), STRIP_Y, CELL, SH),
+ffree = box("live.text", (1500, 560, 60, 17), ins=1, outs=2, outtypes=["", ""], pres=((wx + 0 * (WC + 3)), STRIP_Y, WC, SH),
             text="Free", texton="Free", mode=1, parameter_enable=0, **info("flock", "Free / Lock"), fontsize=8.5,
             activebgoncolor=rgba(C["teal"]), activetextoncolor=rgba(INK), bgcolor=rgba(BTN), bgoncolor=rgba(C["teal"]),
             textcolor=rgba((0.85, 0.85, 0.85)), rounded=3)
-flockb = box("live.text", (1570, 560, 60, 17), ins=1, outs=2, outtypes=["", ""], pres=(cellx("wave", 1), STRIP_Y, CELL, SH),
+flockb = box("live.text", (1570, 560, 60, 17), ins=1, outs=2, outtypes=["", ""], pres=((wx + 1 * (WC + 3)), STRIP_Y, WC, SH),
              text="Lock", texton="Lock", mode=1, parameter_enable=0, **info("flock", "Free / Lock"), fontsize=8.5,
              activebgoncolor=rgba(C["amber"]), activetextoncolor=rgba(INK), bgcolor=rgba(BTN), bgoncolor=rgba(C["amber"]),
              textcolor=rgba((0.85, 0.85, 0.85)), rounded=3)
@@ -294,14 +299,14 @@ mfree = msg("flock 0", (1500, 590, 50, 22)); mlock = msg("flock 1", (1570, 590, 
 tfree = obj("t b", (1500, 575, 24, 22), outtypes=["bang"]); tlock = obj("t b", (1570, 575, 24, 22), outtypes=["bang"])
 wire(ffree, 0, tfree, 0); wire(tfree, 0, mfree, 0); wire(mfree, 0, eng, 0)
 wire(flockb, 0, tlock, 0); wire(tlock, 0, mlock, 0); wire(mlock, 0, eng, 0)
-button("fmute", "Mute", (cellx("wave", 2), STRIP_Y, CELL, SH), (0.85, 0.85, 0.85), toggle=True, param=False, at=(0, 40))
-button("finit", "Init", (cellx("wave", 3), STRIP_Y, CELL, SH), (0.85, 0.85, 0.85), param=False, at=(80, 40))
-button("fclear", "Clear", (cellx("wave", 4), STRIP_Y, CELL, SH), (0.85, 0.85, 0.85), param=False, at=(160, 40))
-button("frand", "Random file", (cellx("wave", 5), STRIP_Y, 2 * CELL + CG, SH), C["teal"], param=False, at=(240, 40))
+button("fmute", "Mute", ((wx + 2 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), toggle=True, param=False, at=(0, 40))
+button("finit", "Init", ((wx + 3 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(80, 40))
+button("fclear", "Clear", ((wx + 4 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(160, 40))
+button("frand", "Random file", ((wx + 5 * (WC + 3)), STRIP_Y, 2 * WC + 3, SH), C["teal"], param=False, at=(240, 40))
 
 # ---- the per-file page ----
 pgx = PX["page"] + IP
-page = box("jsui", (400, 500, 193, 153), ins=1, outs=1, pres=(pgx, Y0, 193, PH - 8), filename="wanderer.page.js",
+page = box("jsui", (400, 500, PAGE_W, 153), ins=1, outs=1, pres=(pgx, Y0, PAGE_W, PH - 8), filename="wanderer.page.js",
            parameter_enable=0, border=0, **info("page", "File settings"))
 
 # ---- groove + shape ----
@@ -329,8 +334,8 @@ scale = box("live.menu", (1400, 900, 80, 15), ins=1, outs=3, outtypes=["", "", "
             pres=(cellx("master", 1, S0), ROWB + 13, CELL, 14), varname="Scale", parameter_enable=1, **info("gscale", "Scale"),
             fontsize=8.0, bgcolor=rgba(BTN), textcolor=rgba(TXT), arrowcolor=rgba(C["shape"]),
             saved_attribute_attributes=valueof("Scale", "Scale", 2, 0, 11, 0, 9, enum=[
-                "Chromatic", "Major", "Minor", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Harm minor",
-                "Maj penta", "Min penta", "Fifths", "Octaves"]))
+                "Chrom", "Major", "Minor", "Dorian", "Phryg", "Lydian", "Mixo", "HarMin",
+                "MajPen", "MinPen", "Fifths", "Octave"]))
 ctl["gscale"] = scale
 bang_at_init.append(scale)
 to_engine("gscale", scale, 1400, 930)
@@ -364,7 +369,7 @@ slide = box("live.menu", (1400, 1000, 80, 15), ins=1, outs=3, outtypes=["", "", 
             pres=(mx + CELL + CG, Y0 + 118, CELL, 14), varname="Slide", parameter_enable=1, **info("slide", "Slide"),
             fontsize=8.0, bgcolor=rgba(BTN), textcolor=rgba(TXT), arrowcolor=rgba(C["memory"]),
             saved_attribute_attributes=valueof("Slide", "Slide", 2, 0, 6, 0, 9,
-                                               enum=["Instant", "1/4 bar", "1 bar", "2 bars", "4 bars", "8 bars", "16 bars"]))
+                                               enum=["Off", "1/4", "1 bar", "2 bar", "4 bar", "8 bar", "16 bar"]))
 ctl["slide"] = slide
 bang_at_init.append(slide)
 to_engine("slide", slide, 1400, 1030)
@@ -376,12 +381,16 @@ header("detect", "DETECT", C["detect"])
 dial("msens", "Detect Sens", "Sens", -50, 50, 0, 0, C["detect"], (cellx("detect", 0), ROWA, CELL, DH), at=(420, 0))
 dial("mlen", "Detect Min Len", "Min len", -100, 100, 0, 0, C["detect"], (cellx("detect", 0), ROWB, CELL, DH), at=(480, 0))
 tab("gmethod", "Detect Method", "Method", ["Hits", "Notes"], 0, C["detect"], (cellx("detect", 0), STRIP_Y, CELL, SH), 1, at=(240, 0))
+for b in boxes:
+    if b["box"]["id"] == ctl["gmethod"]:
+        b["box"]["fontsize"] = 7.0
 
 # ---- out ----
 header("out", "OUT", C["out"])
 dial("even", "Even", "Even", 0, 100, 0, 5, C["out"], (cellx("out", 0), ROWA, CELL, DH), at=(540, 0))
 dial("comp", "Comp", "Comp", 0, 100, 0, 5, C["out"], (cellx("out", 1), ROWA, CELL, DH), at=(600, 0))
-gr = box("jsui", (900, 500, 30, 5), ins=1, outs=0, pres=(cellx("out", 1) + 3, ROWA + DH + 1, CELL - 6, 4),
+# the gain-reduction bar sits in the gap between Comp's value and the Volume label below
+gr = box("jsui", (900, 500, 30, 5), ins=1, outs=0, pres=(cellx("out", 1) + 6, ROWA + DH - 3, CELL - 12, 3),
          filename="wanderer.gr.js", parameter_enable=0, border=0)
 dial("stereo", "Stereo", "Stereo", 0, 200, 100, 5, C["out"], (cellx("out", 0), ROWB, CELL, DH), at=(660, 0))
 dial("volume", "Volume", "Volume", -70, 6, 0, 4, C["out"], (cellx("out", 1), ROWB, CELL, DH), at=(720, 0))

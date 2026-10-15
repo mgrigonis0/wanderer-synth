@@ -76,7 +76,7 @@ var PAGES = {
 };
 
 // geometry (1x): tabs column, then 4 cells
-var TABW = 36, GAP = 4, CELL = 36, CGAP = 3, HEAD = 14, ROWH = 56, STRIP = 15;
+var TABW = 36, GAP = 4, CELL = 40, CGAP = 3, HEAD = 14, ROWH = 56, STRIP = 15;
 var cur = 0, depth = 100;
 var B = [], R = [], M = [];
 for (var i = 0; i < NP; i++) { B[i] = 0; }

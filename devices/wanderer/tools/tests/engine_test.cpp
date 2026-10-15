@@ -215,6 +215,19 @@ static void testClicks() {
     fails += expect(total == 0, "no clicks: starts, ends, cuts, loops, bursts, reverse, grain, stop");
 }
 
+static void testButtons() {
+    std::printf("buttons\n");
+    Rig rig;
+    rig.load(0, "/d.wav", drumLoop(120, 2, nullptr));
+    const float before = rig.m->files[0].ps.b[DENS];
+    std::vector<Model::Atom> a(1);
+    a[0].num = false; a[0].s = "bang";
+    rig.m->message("grand", a);            // what a Live button sends through [prepend grand]
+    fails += expect(rig.m->files[0].ps.b[DENS] != before, "Random all works from a button (bang)");
+    rig.m->message("store", a);
+    fails += expect(rig.m->slots[0] && rig.m->slots[0]->used, "Store works from a button (bang)");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -238,6 +251,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "lock") testLockRepeats();
     if (only.empty() || only == "save") testSaveRestore();
     if (only.empty() || only == "clicks") testClicks();
+    if (only.empty() || only == "buttons") testButtons();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

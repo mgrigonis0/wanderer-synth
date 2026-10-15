@@ -54,6 +54,7 @@ struct Host {
     virtual void askRelink(int f) = 0;
     virtual void saveState() = 0;                                   // the host calls model.writeState() and stores it
     virtual bool fileExists(const std::string& path) = 0;
+    virtual void log(const std::string&) {}
 };
 
 // Flat saved state: numbers and text by key.
@@ -160,7 +161,14 @@ public:
     struct Atom { bool num = true; double d = 0; std::string s; };
 
     void message(const std::string& m, const std::vector<Atom>& a) {
-        auto n = [&](size_t i, double def = 0) { return i < a.size() ? (a[i].num ? a[i].d : std::atof(a[i].s.c_str())) : def; };
+        // a button's "bang" (or any word) counts as the default: "grand bang" = "grand 1"
+        auto n = [&](size_t i, double def = 0) {
+            if (i >= a.size()) return def;
+            if (a[i].num) return a[i].d;
+            char* end = nullptr;
+            const double v = std::strtod(a[i].s.c_str(), &end);
+            return end && end != a[i].s.c_str() && *end == 0 ? v : def;
+        };
         auto s = [&](size_t i) { return i < a.size() ? (a[i].num ? std::to_string(a[i].d) : a[i].s) : std::string(); };
         // ---- the file page ----
         if (m == "set") { setValue(sel, (int)n(0), s(1), n(2)); return; }   // set <param> b|r|m <value>
@@ -216,6 +224,7 @@ public:
         FileModel& F = files[f];
         if (F.state != F_LOADING) return;
         if (!ok || frames < 64) {
+            host->log("could not read: " + F.path);
             F.state = F_MISSING;
             status(f, "file not found");
             sendFiles();
@@ -378,7 +387,7 @@ public:
     }
 
     void drop(const std::string& path) {
-        if (path.empty()) return;
+        if (path.find_first_of("/:\\") == std::string::npos) return;   // not a path (e.g. a stray bang)
         int f = -1;
         if (files[sel].state == F_EMPTY) f = sel;
         else for (int i = 0; i < NF; i++) if (files[i].state == F_EMPTY) { f = i; break; }
@@ -401,6 +410,7 @@ public:
         if (!keepSlicing) { F.savedStarts.clear(); }
         cmd(C_SILENCE, f, 0);
         if (!host->fileExists(path)) {
+            host->log("file not found: " + path);
             F.state = F_MISSING;
             cmd(C_SLICES, f, 0, nullptr);
             status(f, "file not found");

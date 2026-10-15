@@ -35,7 +35,7 @@ function paint() {
             col([0.365, 0.31, 0.549]); mgraphics.rectangle_rounded(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 3, 3); mgraphics.stroke();
         } else {
             col([0.133, 0.137, 0.149]); mgraphics.rectangle_rounded(c.x, c.y, c.w, c.h, 3, 3); mgraphics.fill();
-            col([0.24, 0.243, 0.263]); mgraphics.set_dash([2, 2], 0); mgraphics.rectangle_rounded(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 3, 3); mgraphics.stroke(); mgraphics.set_dash([], 0);
+            col([0.24, 0.243, 0.263]); mgraphics.rectangle_rounded(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 3, 3); mgraphics.stroke();
         }
         if (i === cur) { col(PALE); mgraphics.set_line_width(1.5); mgraphics.rectangle_rounded(c.x + 0.75, c.y + 0.75, c.w - 1.5, c.h - 1.5, 3, 3); mgraphics.stroke(); }
         mgraphics.set_font_size(9);

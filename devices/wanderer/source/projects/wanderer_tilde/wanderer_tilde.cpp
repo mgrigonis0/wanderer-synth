@@ -54,6 +54,7 @@ public:
     void askRelink(int f) override;
     void saveState() override;
     bool fileExists(const std::string& path) override;
+    void log(const std::string& t) override;
 };
 
 struct t_wanderer {
@@ -192,14 +193,21 @@ void Glue::saveState() {
     x->saving = false;
 }
 
+void Glue::log(const std::string& t) { object_post((t_object*)x, "%s", t.c_str()); }
+
+// Live and Max give paths as "/Users/..." or "Macintosh HD:/Users/...": try the path, Max's native form,
+// and the part after the volume name
 bool Glue::fileExists(const std::string& path) {
+    std::vector<std::string> tries{path};
     char native[MAX_PATH_CHARS];
-    if (path_nameconform(path.c_str(), native, PATH_STYLE_NATIVE, PATH_TYPE_BOOT) != 0)
-        std::snprintf(native, sizeof native, "%s", path.c_str());
-    std::ifstream f(native, std::ios::binary);
-    if (f.good()) return true;
-    std::ifstream g(path.c_str(), std::ios::binary);
-    return g.good();
+    if (path_nameconform(path.c_str(), native, PATH_STYLE_NATIVE, PATH_TYPE_ABSOLUTE) == 0) tries.push_back(native);
+    const size_t c = path.find(":/");
+    if (c != std::string::npos) tries.push_back(path.substr(c + 1));
+    for (const std::string& t : tries) {
+        std::ifstream f(t.c_str(), std::ios::binary);
+        if (f.good()) return true;
+    }
+    return false;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -216,7 +224,7 @@ static void wnd_tick(t_wanderer* x) {
                     t_atom a; atom_setsym(&a, gensym(x->pendingPath[f].c_str()));
                     typedmess(r, gensym("replace"), 1, &a);
                     x->loadDeadline[f] = ms + 30000;
-                } else x->model->bufferLoaded(f, false, 0, 0);
+                } else { object_error((t_object*)x, "buffer for slot %d is missing", f + 1); x->model->bufferLoaded(f, false, 0, 0); }
             }
             if (x->loadDeadline[f] >= 0 && ms >= x->loadDeadline[f]) {   // the buffer never answered
                 x->loadDeadline[f] = -1;
@@ -255,6 +263,7 @@ static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
         else m.d = atom_getfloat(argv + i);
         a.push_back(m);
     }
+    if (s == gensym("drop") && !a.empty()) object_post((t_object*)x, "drop: %s", a[0].num ? "(a number)" : a[0].s.c_str());
     std::lock_guard<std::recursive_mutex> g(*x->mx);
     x->model->message(s->s_name, a);
 }
@@ -399,7 +408,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15a (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15b (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 

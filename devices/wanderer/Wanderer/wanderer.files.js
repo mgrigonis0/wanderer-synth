@@ -48,7 +48,7 @@ function paint() {
             fg = mu[i] ? [0.43, 0.55, 0.54] : [0.85, 0.96, 0.96];
         } else {
             col([0.133, 0.137, 0.149]); mgraphics.rectangle_rounded(c.x, c.y, c.w, c.h, 2.5, 2.5); mgraphics.fill();
-            col([0.24, 0.243, 0.263]); mgraphics.set_dash([2, 2], 0); mgraphics.rectangle_rounded(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 2.5, 2.5); mgraphics.stroke(); mgraphics.set_dash([], 0);
+            col([0.24, 0.243, 0.263]); mgraphics.rectangle_rounded(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, 2.5, 2.5); mgraphics.stroke();
             fg = [0.42, 0.42, 0.44];
         }
         if (i === sel) { col(LIGHT); mgraphics.set_line_width(1.5); mgraphics.rectangle_rounded(c.x + 0.75, c.y + 0.75, c.w - 1.5, c.h - 1.5, 2.5, 2.5); mgraphics.stroke(); }
