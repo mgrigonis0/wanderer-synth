@@ -176,12 +176,16 @@ struct ClickStats { long count = 0; double worst = 0; long worstAt = -1; };
 inline ClickStats findClicks(const std::vector<float>& x, double ratio = 0.02, double absFloor = 2e-3) {
     ClickStats cs;
     const size_t n = x.size();
-    // running peak over ~10 ms
+    // the level around each sample: a running peak over the ~10 ms before it and the 10 ms after it (a sound that
+    // fades in from silence is judged against the level it fades in to, not against the silence before it)
+    std::vector<float> ahead(n, 0.f);
+    double pa = 0;
+    for (size_t i = n; i-- > 0;) { pa = std::max(pa * 0.9995, (double)std::fabs(x[i])); ahead[i] = (float)pa; }
     double pk = 0;
     for (size_t i = 2; i < n; i++) {
         pk = std::max(pk * 0.9995, (double)std::fabs(x[i]));
         const double d2 = std::fabs(x[i] - 2 * x[i - 1] + x[i - 2]);
-        const double lim = std::max(absFloor, ratio * std::max(pk, 0.05));
+        const double lim = std::max(absFloor, ratio * std::max(std::max(pk, (double)ahead[i]), 0.05));
         if (d2 > lim) {
             cs.count++;
             if (d2 / lim > cs.worst) { cs.worst = d2 / lim; cs.worstAt = (long)i; }
