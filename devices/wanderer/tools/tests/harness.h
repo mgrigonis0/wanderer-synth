@@ -89,6 +89,9 @@ struct TestHost : Host {
     void askRelink(int) override {}
     void saveState() override;
     bool fileExists(const std::string& path) override;
+    std::map<int, std::string> holder;     // what each slot's hidden live.drop holds
+    void keepFile(int f, const std::string& p) override { holder[f] = p; }
+    void forgetFile(int f) override { holder.erase(f); }
 };
 
 struct Rig {
@@ -168,7 +171,7 @@ inline void TestHost::analyze(int f, int gen, const SliceJob& job) {
     rig->m->analysisDone(f, gen, r);
 }
 inline void TestHost::saveState() { saves++; rig->m->writeState(saved); }
-inline bool TestHost::fileExists(const std::string& path) { return rig->disk.count(path) > 0; }
+inline bool TestHost::fileExists(const std::string& path) { return path.find('/') == std::string::npos || rig->disk.count(path) > 0; }
 
 // ---- measurements ------------------------------------------------------------------------------
 // clicks: a jump in the second difference far above what the signal's own content allows

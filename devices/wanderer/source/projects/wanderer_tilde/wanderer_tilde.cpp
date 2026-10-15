@@ -55,6 +55,8 @@ public:
     void saveState() override;
     bool fileExists(const std::string& path) override;
     void log(const std::string& t) override;
+    void keepFile(int f, const std::string& path) override;
+    void forgetFile(int f) override;
 };
 
 struct t_wanderer {
@@ -195,6 +197,20 @@ void Glue::saveState() {
 
 void Glue::log(const std::string& t) { object_post((t_object*)x, "%s", t.c_str()); }
 
+// "keepfile <slot> <path>" / "forgetfile <slot>": the patch hands them to that slot's hidden live.drop, so Live
+// keeps the file with the set and hands it back when the set is reopened
+void Glue::keepFile(int f, const std::string& path) {
+    t_atom a[2];
+    atom_setlong(a, f);
+    atom_setsym(a + 1, gensym(path.c_str()));
+    outlet_anything(x->infoOut, gensym("keepfile"), 2, a);
+}
+void Glue::forgetFile(int f) {
+    t_atom a;
+    atom_setlong(&a, f);
+    outlet_anything(x->infoOut, gensym("forgetfile"), 1, &a);
+}
+
 // Live and Max give paths as "/Users/..." or "Macintosh HD:/Users/...": try the path, Max's native form,
 // and the part after the volume name
 bool Glue::fileExists(const std::string& path) {
@@ -282,6 +298,8 @@ static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
     }
     // Live hands over a bare file name (a copy it keeps on Max's search path) or a Max-style path:
     // turn either into a full system path before the engine sees it
+    if (s == gensym("slotfile") && a.size() > 1 && !a[1].num && a[1].s != "none")
+        object_post((t_object*)x, "slot %d: Live returned %s", (int)a[0].d + 1, a[1].s.c_str());
     if ((s == gensym("drop") || s == gensym("relinkpath")) && !a.empty() && !a[0].num) {
         std::string full = resolve_path(a[0].s);
         if (full.empty()) {
@@ -436,7 +454,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15j (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15k (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 

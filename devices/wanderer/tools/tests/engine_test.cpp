@@ -307,6 +307,54 @@ static void testRepOff() {
     fails += expect(ps.b[RCHANCE] == 1.f && ps.b[LOOP] == 0.3f, "switching Rep never changes the settings");
 }
 
+// Files dropped as Live's TEMP-… names: after reopening the set, Live hands each slot's file back through its
+// holder (under whatever name it keeps it), and every slot comes back with its slicing
+static void testHolders() {
+    std::printf("file holders\n");
+    Rig a;
+    a.tempo(120);
+    const char* names[3] = {"TEMP-1_kick.aif", "TEMP-2_loop.aif", "TEMP-3_hats.aif"};
+    for (int i = 0; i < 3; i++) {
+        a.disk[names[i]] = drumLoop(110 + 10 * i, 2, nullptr, 3 + i);
+        std::vector<Model::Atom> d(1);
+        d[0].num = false; d[0].s = names[i];
+        a.m->message("drop", d);
+        a.run(0.3);
+    }
+    a.run(3);
+    bool held = a.host.holder.size() == 3;
+    for (int i = 0; i < 3; i++) held = held && a.host.holder[i] == names[i];
+    fails += expect(held, "every dropped file is handed to its slot's holder");
+    StateDoc doc = a.host.saved;
+    for (int order = 0; order < 2; order++) {
+        // the reopened set: the TEMP names are gone; Live hands the files back under its own names
+        Rig b;
+        for (int i = 0; i < 3; i++) b.disk[std::string("/Live/Samples/") + names[i]] = a.disk[names[i]];
+        auto hand = [&]() {
+            for (int i = 0; i < 3; i++) {
+                std::vector<Model::Atom> m(2);
+                m[0].d = i; m[1].num = false; m[1].s = std::string("/Live/Samples/") + names[i];
+                b.m->message("slotfile", m);
+            }
+        };
+        b.m->restored = false;
+        if (order == 0) { hand(); b.m->readState(doc); }       // holders report before the saved state
+        else { b.m->readState(doc); b.run(0.1); hand(); }      // ... or after it
+        b.run(0.5);
+        bool ok = true;
+        for (int i = 0; i < 3; i++) {
+            const FileModel& x = a.m->files[i];
+            const FileModel& y = b.m->files[i];
+            ok = ok && y.state == F_READY && y.tab.ns == x.tab.ns;
+            for (int k = 0; ok && k < x.tab.ns; k++) ok = x.tab.start[k] == y.tab.start[k];
+        }
+        fails += expect(ok, order == 0 ? "reopened: all files back with their slicing (holders first)"
+                                       : "reopened: all files back with their slicing (holders after the state)");
+    }
+    a.m->clearFile(1);
+    fails += expect(a.host.holder.count(1) == 0, "clearing a slot empties its holder");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -334,6 +382,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "buzz") testBuzz();
     if (only.empty() || only == "loopshare") testLoopShare();
     if (only.empty() || only == "rep") testRepOff();
+    if (only.empty() || only == "holders") testHolders();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

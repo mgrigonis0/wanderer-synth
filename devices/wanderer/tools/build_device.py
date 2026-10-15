@@ -161,13 +161,26 @@ for i in range(1, NF + 1):
     lm = msg(f"loaded {i - 1}", (x, y + 56, 60, 22))
     wire(rr, 0, bf, 0); wire(bf, 1, lm, 0); wire(lm, 0, eng, 0)
 
+# Live keeps the files: one hidden file parameter per slot. The engine sends "keepfile <slot> <path>" when a file
+# lands in a slot and "forgetfile <slot>" when it's cleared; Live stores each holder's file with the set (and with
+# Collect All and Save) and, when the set is reopened, each holder sends its file back -> "slotfile <slot> <path>".
+holders = []
+for i in range(NF):
+    x, y = 40 + i % 8 * 120, 1400 + i // 8 * 140
+    hd = box("live.drop", (x, y, 90, 30), ins=1, outs=2, varname=f"File {i + 1}", parameter_enable=1,
+             saved_attribute_attributes={"valueof": {"parameter_invisible": 1, "parameter_longname": f"File {i + 1}",
+                                                      "parameter_shortname": f"File {i + 1}", "parameter_type": 4}})
+    ps = obj(f"prepend slotfile {i}", (x, y + 40, 100, 22))
+    wire(hd, 0, ps, 0); wire(ps, 0, eng, 0)
+    holders.append(hd)
+
 # saving: a hidden blob parameter holding the engine's dict
 pattr = obj("pattr state", (600, 300, 82, 22), ins=1, outs=3, parameter_enable=1,
             saved_attribute_attributes=valueof("State", "State", 3, 0, 1, 0, invisible=1))
 wire(pattr, 0, eng, 0)
 
 # engine -> patch
-route = obj("route fstate cleararm gset getstate dictionary relink", (200, 400, 330, 22), ins=2, outs=7)
+route = obj("route fstate cleararm gset getstate dictionary relink keepfile forgetfile", (200, 400, 420, 22), ins=2, outs=9)
 wire(eng, 2, route, 0)
 tget = obj("t b", (420, 430, 30, 22), ins=1, outs=1, outtypes=["bang"])
 wire(route, 3, tget, 0); wire(tget, 0, pattr, 0)
@@ -175,6 +188,14 @@ pdict = obj("prepend dictionary", (480, 460, 110, 22))
 wire(route, 4, pdict, 0); wire(pdict, 0, pattr, 0)
 odlg = obj("opendialog sound", (560, 430, 100, 22), ins=1, outs=2)
 prl = obj("prepend relinkpath", (560, 460, 110, 22))
+rkeep = obj("route " + " ".join(str(i) for i in range(NF)), (700, 440, 300, 22), ins=2, outs=NF + 1)
+rforget = obj("route " + " ".join(str(i) for i in range(NF)), (700, 480, 300, 22), ins=2, outs=NF + 1)
+wire(route, 6, rkeep, 0); wire(route, 7, rforget, 0)
+for i, hd in enumerate(holders):
+    pset = obj("prepend set", (40 + i % 8 * 120, 1470 + i // 8 * 140, 70, 22))
+    mclr = msg("clear", (120 + i % 8 * 120, 1470 + i // 8 * 140, 40, 22))
+    wire(rkeep, i, pset, 0); wire(pset, 0, hd, 0)
+    wire(rforget, i, mclr, 0); wire(mclr, 0, hd, 0)
 trl = obj("t b", (560, 405, 30, 22), outtypes=["bang"])   # "relink <slot>": opendialog only takes a bang
 wire(route, 5, trl, 0); wire(trl, 0, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
 

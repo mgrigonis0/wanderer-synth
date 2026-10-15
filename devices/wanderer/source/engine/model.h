@@ -55,6 +55,9 @@ struct Host {
     virtual void saveState() = 0;                                   // the host calls model.writeState() and stores it
     virtual bool fileExists(const std::string& path) = 0;
     virtual void log(const std::string&) {}
+    // Live keeps each slot's file with the set (one hidden file holder per slot); the host forwards these to it
+    virtual void keepFile(int, const std::string&) {}
+    virtual void forgetFile(int) {}
 };
 
 // Flat saved state: numbers and text by key.
@@ -122,6 +125,7 @@ struct FileModel {
     Pattern pat;
     std::deque<Hit> played;             // the last 512 free hits (ph = song position)
     std::vector<float> peaks;           // waveform overview
+    std::string livePath;               // where Live's file holder for this slot says the file is (set on load)
     double resliceAt = -1;              // debounce (ms)
 };
 
@@ -185,6 +189,7 @@ public:
         if (m == "sliceweight") { sliceWeight((int)n(0), n(1)); return; }
         if (m == "drop") { drop(s(0)); return; }
         if (m == "relinkpath") { relink(s(0)); return; }
+        if (m == "slotfile") { slotFile((int)n(0, -1), s(1)); return; }
         // ---- memory ----
         if (m == "store") { if (n(0, 1) != 0) store(); return; }
         if (m == "slot") { recall((int)n(0)); return; }
@@ -357,8 +362,10 @@ public:
             F.pat = Pattern();
             if (F.lock && getPattern(d, k + "pat", F.pat)) { sendPattern(f, 0); cmd(C_LOCK, f, 1); }
             else { F.lock = false; cmd(C_LOCK, f, 0); }
+            // the file: where Live's holder says it is, else the saved name
             auto p = d.str.find(k + "path");
-            if (p != d.str.end() && !p->second.empty()) loadFile(f, p->second, true);
+            const std::string path = !F.livePath.empty() ? F.livePath : (p != d.str.end() ? p->second : std::string());
+            if (!path.empty()) loadFile(f, path, true);
         }
         for (int s = 0; s < NSLOT; s++) {
             const std::string k = "s" + std::to_string(s) + ".";
@@ -395,11 +402,28 @@ public:
         FileModel& F = files[f];
         F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear(); F.savedStarts.clear(); F.wroll = false;
         loadFile(f, path);
+        host->keepFile(f, path);
         sel = f;
         select(sel);
     }
 
-    void relink(const std::string& path) { if (files[sel].state == F_MISSING) loadFile(sel, path, true); }
+    void relink(const std::string& path) {
+        if (files[sel].state != F_MISSING || path.empty()) return;
+        loadFile(sel, path, true);
+        host->keepFile(sel, path);
+    }
+
+    // A slot's file holder reports its file: at load (Live hands back where it keeps the file), or as an echo
+    // of a keepFile. A different file than the slot has -> load it, keeping the saved slicing and settings.
+    void slotFile(int f, const std::string& path) {
+        if (f < 0 || f >= NF || path.empty() || path == "none" || path == "bang") return;
+        FileModel& F = files[f];
+        F.livePath = path;
+        if (!restored) return;                      // readState will use it
+        if (path == F.path) return;                 // the same file (an echo)
+        if (F.state == F_READY) { F.path = path; dirty(); return; }   // the same audio, Live's new name for it
+        loadFile(f, path, true);
+    }
 
     void loadFile(int f, const std::string& path, bool keepSlicing = false) {
         FileModel& F = files[f];
@@ -439,6 +463,8 @@ public:
         F.tab = SliceTable(); F.lock = false; F.mute = false; F.pat = Pattern(); F.played.clear();
         F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear(); F.savedStarts.clear(); F.wroll = false; F.resliceAt = -1;
         host->clearBuffer(f);
+        host->forgetFile(f);
+        F.livePath.clear();
         sendFiles();
         if (f == sel) { sendWave(); sendPage(); }
         dirty();
