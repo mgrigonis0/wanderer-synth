@@ -387,7 +387,7 @@ public:
     }
 
     void drop(const std::string& path) {
-        if (path.find_first_of("/:\\") == std::string::npos) return;   // not a path (e.g. a stray bang)
+        if (path.empty() || path == "none" || path == "bang") return;   // not a file (a stray bang, an empty strip)
         int f = -1;
         if (files[sel].state == F_EMPTY) f = sel;
         else for (int i = 0; i < NF; i++) if (files[i].state == F_EMPTY) { f = i; break; }

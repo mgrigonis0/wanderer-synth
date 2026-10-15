@@ -226,6 +226,14 @@ static void testButtons() {
     fails += expect(rig.m->files[0].ps.b[DENS] != before, "Random all works from a button (bang)");
     rig.m->message("store", a);
     fails += expect(rig.m->slots[0] && rig.m->slots[0]->used, "Store works from a button (bang)");
+    // Live hands over a bare name (TEMP-… copy): the engine passes it to the buffer as it is
+    rig.disk["TEMP-655_loop.aif"] = drumLoop(120, 2, nullptr);
+    rig.m->select(5);
+    std::vector<Model::Atom> d(1);
+    d[0].num = false; d[0].s = "TEMP-655_loop.aif";
+    rig.m->message("drop", d);
+    rig.run(0.3);
+    fails += expect(rig.m->files[5].state == F_READY && rig.m->files[5].tab.ns > 4, "a dropped bare file name loads and slices");
 }
 
 static void testCpu() {

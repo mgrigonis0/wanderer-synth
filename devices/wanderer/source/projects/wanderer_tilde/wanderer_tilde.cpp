@@ -304,6 +304,7 @@ static void wnd_init(t_wanderer* x) {
 
 static void wnd_loaded(t_wanderer* x, long f) {
     if (f < 0 || f >= NF) return;
+    { t_buffer_obj* bb = buffer_ref_getobject(x->bref[f]); object_post((t_object*)x, "slot %ld: %ld samples read", f + 1, bb ? (long)buffer_getframecount(bb) : 0L); }
     x->loadDeadline[f] = -1;
     t_buffer_obj* b = buffer_ref_getobject(x->bref[f]);
     long frames = b ? (long)buffer_getframecount(b) : 0;
@@ -435,7 +436,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15f (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15g (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 
