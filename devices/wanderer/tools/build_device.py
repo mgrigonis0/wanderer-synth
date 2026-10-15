@@ -173,7 +173,8 @@ pdict = obj("prepend dictionary", (480, 460, 110, 22))
 wire(route, 4, pdict, 0); wire(pdict, 0, pattr, 0)
 odlg = obj("opendialog sound", (560, 430, 100, 22), ins=1, outs=2)
 prl = obj("prepend relinkpath", (560, 460, 110, 22))
-wire(route, 5, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
+trl = obj("t b", (560, 405, 30, 22), outtypes=["bang"])   # "relink <slot>": opendialog only takes a bang
+wire(route, 5, trl, 0); wire(trl, 0, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
 
 # --------------------------------------------------------------------------------------------- layout (1x)
 DEV_H = 169

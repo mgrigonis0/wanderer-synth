@@ -198,6 +198,8 @@ void Glue::log(const std::string& t) { object_post((t_object*)x, "%s", t.c_str()
 // Live and Max give paths as "/Users/..." or "Macintosh HD:/Users/...": try the path, Max's native form,
 // and the part after the volume name
 bool Glue::fileExists(const std::string& path) {
+    // a bare name (no folder) can only be judged by buffer~ itself: let it try (a failed load is reported then)
+    if (path.find('/') == std::string::npos) return true;
     std::vector<std::string> tries{path};
     char native[MAX_PATH_CHARS];
     if (path_nameconform(path.c_str(), native, PATH_STYLE_NATIVE, PATH_TYPE_ABSOLUTE) == 0) tries.push_back(native);
@@ -223,7 +225,7 @@ static void wnd_tick(t_wanderer* x) {
                 if (r) {
                     t_atom a; atom_setsym(&a, gensym(x->pendingPath[f].c_str()));
                     typedmess(r, gensym("replace"), 1, &a);
-                    x->loadDeadline[f] = ms + 30000;
+                    x->loadDeadline[f] = ms + 8000;
                 } else { object_error((t_object*)x, "buffer for slot %d is missing", f + 1); x->model->bufferLoaded(f, false, 0, 0); }
             }
             if (x->loadDeadline[f] >= 0 && ms >= x->loadDeadline[f]) {   // the buffer never answered
@@ -262,13 +264,12 @@ static std::string resolve_path(const std::string& in) {
         if (path_nameconform(in.c_str(), full, PATH_STYLE_NATIVE, PATH_TYPE_ABSOLUTE) == 0) return full;
         return in;
     }
-    // a bare name: where Max finds it
+    // a bare name: a full path if Max can tell one, else the name as it is (buffer~ finds it by name)
     std::snprintf(name, sizeof name, "%s", in.c_str());
     short vol = 0;
     t_fourcc type = 0;
-    if (locatefile_extended(name, &vol, &type, nullptr, 0) != 0) return "";
-    if (path_toabsolutesystempath(vol, name, full) != 0) return "";
-    return full;
+    if (locatefile_extended(name, &vol, &type, nullptr, 0) == 0 && path_toabsolutesystempath(vol, name, full) == 0) return full;
+    return in;
 }
 
 static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
@@ -434,7 +435,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15e (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15f (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 

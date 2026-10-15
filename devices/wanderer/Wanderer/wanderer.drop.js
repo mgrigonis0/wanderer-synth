@@ -12,9 +12,10 @@ function drop() {
     if (!name || name === "none" || name === "bang") return;
     var f = new File(name, "read");
     if (f.isopen) {
-        var full = f.foldername + "/" + f.filename;
+        // a file Max finds only by name (Live's TEMP-… copies) has no folder: buffer~ finds it by name the same way
+        var full = f.foldername ? f.foldername + "/" + f.filename : f.filename;
         f.close();
-        post("wanderer: dropped " + full + "\n");
+        post("wanderer: dropped " + full + (f.foldername ? "" : "  (found by name only)") + "\n");
         outlet(0, "drop", full);
     } else {
         f.close();
