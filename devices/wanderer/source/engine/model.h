@@ -58,6 +58,8 @@ struct Host {
     // Live keeps each slot's file with the set (one hidden file holder per slot); the host forwards these to it
     virtual void keepFile(int, const std::string&) {}
     virtual void forgetFile(int) {}
+    // a file found only by name won't survive the set closing: keep a copy, return its full path ("" = can't)
+    virtual std::string persistFile(int, const std::string&) { return ""; }
 };
 
 // Flat saved state: numbers and text by key.
@@ -237,6 +239,10 @@ public:
         }
         F.frames = frames;
         F.sr = sr > 0 ? sr : 44100;
+        if (F.path.find_first_of("/:\\") == std::string::npos) {   // only a name (Live's TEMP-… copy): keep our own
+            const std::string kept = host->persistFile(f, F.path);
+            if (!kept.empty()) { F.path = kept; dirty(); }
+        }
         SliceJob job = jobFor(f);
         if (!F.savedStarts.empty()) {   // a set reload: the same slicing as when it was saved
             bool okStarts = F.savedStarts.back() < frames;
@@ -395,6 +401,8 @@ public:
 
     void drop(const std::string& path) {
         if (path.empty() || path == "none" || path == "bang") return;   // not a file (a stray bang, an empty strip)
+        // the Drop strip repeats its last file when a set opens: that is not a new drop (the state has the files)
+        if (!restored) { host->log("drop ignored while the set is loading: " + path); return; }
         int f = -1;
         if (files[sel].state == F_EMPTY) f = sel;
         else for (int i = 0; i < NF; i++) if (files[i].state == F_EMPTY) { f = i; break; }
@@ -430,6 +438,10 @@ public:
         F.path = path;
         size_t k = path.find_last_of("/:\\");
         F.name = k == std::string::npos ? path : path.substr(k + 1);
+        if (F.name.compare(0, 5, "TEMP-") == 0) {   // Live's "TEMP-655_3870941970_" prefix
+            size_t u = F.name.find('_'), v = u == std::string::npos ? u : F.name.find('_', u + 1);
+            if (v != std::string::npos) F.name = F.name.substr(v + 1);
+        }
         F.gen++;
         if (!keepSlicing) { F.savedStarts.clear(); }
         cmd(C_SILENCE, f, 0);

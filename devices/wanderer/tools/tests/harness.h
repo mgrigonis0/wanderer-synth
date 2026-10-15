@@ -92,6 +92,8 @@ struct TestHost : Host {
     std::map<int, std::string> holder;     // what each slot's hidden live.drop holds
     void keepFile(int f, const std::string& p) override { holder[f] = p; }
     void forgetFile(int f) override { holder.erase(f); }
+    // keep a copy of a name-only file under ~/Music/Wanderer Samples (as the Max wrapper does)
+    std::string persistFile(int f, const std::string& name) override;
 };
 
 struct Rig {
@@ -169,6 +171,11 @@ inline void TestHost::analyze(int f, int gen, const SliceJob& job) {
     }
     SliceResult r = runSliceJob(an, job);
     rig->m->analysisDone(f, gen, r);
+}
+inline std::string TestHost::persistFile(int f, const std::string& name) {
+    const std::string p = "/home/Music/Wanderer Samples/" + name + ".wav";
+    rig->disk[p] = rig->buf[f];
+    return p;
 }
 inline void TestHost::saveState() { saves++; rig->m->writeState(saved); }
 inline bool TestHost::fileExists(const std::string& path) { return path.find('/') == std::string::npos || rig->disk.count(path) > 0; }

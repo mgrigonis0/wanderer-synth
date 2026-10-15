@@ -19,6 +19,8 @@
 #include "../../engine/model.h"
 
 #include <condition_variable>
+#include <cstdlib>
+#include <sys/stat.h>
 #include <cstdio>
 #include <deque>
 #include <fstream>
@@ -55,8 +57,7 @@ public:
     void saveState() override;
     bool fileExists(const std::string& path) override;
     void log(const std::string& t) override;
-    void keepFile(int f, const std::string& path) override;
-    void forgetFile(int f) override;
+    std::string persistFile(int f, const std::string& name) override;
 };
 
 struct t_wanderer {
@@ -82,6 +83,7 @@ struct t_wanderer {
     double initAt;
     double meterAt;
     uint64_t lastHash;
+    std::string lastFiles;
 };
 
 static t_class* s_class = nullptr;
@@ -180,6 +182,19 @@ void Glue::saveState() {
     for (auto& kv : d.str) { mix(kv.first.data(), kv.first.size()); mix(kv.second.data(), kv.second.size()); }
     if (h == x->lastHash) return;
     x->lastHash = h;
+    {
+        std::string files;
+        int nfiles = 0;
+        for (auto& kv : d.str)
+            if (kv.first.size() > 5 && kv.first.compare(kv.first.size() - 5, 5, ".path") == 0) {
+                nfiles++;
+                files += "  slot " + std::to_string(std::atoi(kv.first.c_str() + 1) + 1) + ": " + kv.second;
+            }
+        if (files != x->lastFiles) {
+            x->lastFiles = files;
+            object_post((t_object*)x, "saved: %d file%s%s", nfiles, nfiles == 1 ? "" : "s", files.c_str());
+        }
+    }
     dictionary_clear(x->stateDict);
     std::vector<t_atom> at;
     for (auto& kv : d.num) {
@@ -197,18 +212,54 @@ void Glue::saveState() {
 
 void Glue::log(const std::string& t) { object_post((t_object*)x, "%s", t.c_str()); }
 
-// "keepfile <slot> <path>" / "forgetfile <slot>": the patch hands them to that slot's hidden live.drop, so Live
-// keeps the file with the set and hands it back when the set is reopened
-void Glue::keepFile(int f, const std::string& path) {
-    t_atom a[2];
-    atom_setlong(a, f);
-    atom_setsym(a + 1, gensym(path.c_str()));
-    outlet_anything(x->infoOut, gensym("keepfile"), 2, a);
+// A file Max finds only by name (Live's TEMP-… copies) doesn't survive closing the set. Once it's in the buffer,
+// the device keeps its own copy as a 32-bit float WAV in ~/Music/Wanderer Samples and uses that from then on.
+static std::string sanitize(std::string n) {
+    // Live's prefix "TEMP-655_3870941970_" is noise
+    if (n.compare(0, 5, "TEMP-") == 0) {
+        size_t a = n.find('_'), b = a == std::string::npos ? a : n.find('_', a + 1);
+        if (b != std::string::npos) n = n.substr(b + 1);
+    }
+    const size_t dot = n.find_last_of('.');
+    if (dot != std::string::npos) n.resize(dot);
+    for (char& c : n) if (c == '/' || c == ':' || c == '\\') c = '-';
+    return n.empty() ? std::string("sample") : n;
 }
-void Glue::forgetFile(int f) {
-    t_atom a;
-    atom_setlong(&a, f);
-    outlet_anything(x->infoOut, gensym("forgetfile"), 1, &a);
+
+std::string Glue::persistFile(int f, const std::string& name) {
+    const char* home = std::getenv("HOME");
+    if (!home) return "";
+    const std::string dir1 = std::string(home) + "/Music", dir = dir1 + "/Wanderer Samples";
+    ::mkdir(dir1.c_str(), 0755);
+    ::mkdir(dir.c_str(), 0755);
+    t_buffer_obj* b = buffer_ref_getobject(x->bref[f]);
+    if (!b) return "";
+    const long frames = (long)buffer_getframecount(b), ch = (long)buffer_getchannelcount(b);
+    const double sr = buffer_getsamplerate(b) > 0 ? buffer_getsamplerate(b) : 44100;
+    if (frames <= 0 || ch <= 0) return "";
+    const uint32_t dataBytes = (uint32_t)(frames * ch * 4);
+    const std::string base = dir + "/" + sanitize(name);
+    std::string path = base + ".wav";
+    for (int k = 2; k < 1000; k++) {   // the same name and size already there: that's our copy from before
+        struct stat st;
+        if (::stat(path.c_str(), &st) != 0) break;
+        if ((uint64_t)st.st_size == 44ull + dataBytes) { object_post((t_object*)x, "slot %d: using the kept copy %s", f + 1, path.c_str()); return path; }
+        path = base + " " + std::to_string(k) + ".wav";
+    }
+    float* s = buffer_locksamples(b);
+    if (!s) return "";
+    std::ofstream o(path.c_str(), std::ios::binary);
+    auto u32 = [&o](uint32_t v) { o.write((const char*)&v, 4); };
+    auto u16 = [&o](uint16_t v) { o.write((const char*)&v, 2); };
+    o.write("RIFF", 4); u32(36 + dataBytes); o.write("WAVE", 4);
+    o.write("fmt ", 4); u32(16); u16(3); u16((uint16_t)ch); u32((uint32_t)sr); u32((uint32_t)(sr * ch * 4)); u16((uint16_t)(ch * 4)); u16(32);
+    o.write("data", 4); u32(dataBytes);
+    o.write((const char*)s, (std::streamsize)dataBytes);   // buffer~ is interleaved float32, as WAV wants it
+    buffer_unlocksamples(b);
+    o.close();
+    if (!o) { object_error((t_object*)x, "slot %d: couldn't keep a copy at %s", f + 1, path.c_str()); return ""; }
+    object_post((t_object*)x, "slot %d: kept a copy at %s", f + 1, path.c_str());
+    return path;
 }
 
 // Live and Max give paths as "/Users/..." or "Macintosh HD:/Users/...": try the path, Max's native form,
@@ -332,8 +383,11 @@ static void wnd_loaded(t_wanderer* x, long f) {
 }
 
 static void wnd_dictionary(t_wanderer* x, t_symbol* name) {
-    // our own dict echoing back, or a second answer: the state is read once per load
-    if (x->saving || name == x->stateName || x->gotState) return;
+    // the saved state, once per load (whatever name pattr gives it); our own dict echoing back while saving is not
+    if (x->saving || x->gotState) {
+        if (!x->saving) object_post((t_object*)x, "state: ignored a second state (%s)", name->s_name);
+        return;
+    }
     t_dictionary* d = dictobj_findregistered_retain(name);
     if (!d) return;
     StateDoc doc;
@@ -359,6 +413,16 @@ static void wnd_dictionary(t_wanderer* x, t_symbol* name) {
     }
     if (keys) dictionary_freekeys(d, n, keys);
     dictobj_release(d);
+    {
+        std::string files;
+        int nfiles = 0;
+        for (auto& kv : doc.str)
+            if (kv.first.size() > 5 && kv.first.compare(kv.first.size() - 5, 5, ".path") == 0) {
+                nfiles++;
+                files += "  slot " + std::to_string(std::atoi(kv.first.c_str() + 1) + 1) + ": " + kv.second;
+            }
+        object_post((t_object*)x, "restored: %d file%s%s", nfiles, nfiles == 1 ? "" : "s", files.c_str());
+    }
     std::lock_guard<std::recursive_mutex> g(*x->mx);
     x->gotState = true;
     x->model->readState(doc);
@@ -448,13 +512,14 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->initDone = false; x->gotState = false; x->saving = false;
     x->initAt = 0; x->meterAt = 0; x->lastHash = 0;
     char dn[256];
-    std::snprintf(dn, sizeof dn, "%sstate", x->prefix->s_name);
+    // a name of our own for this session: the dict pattr brings back from the set must never clash with it
+    std::snprintf(dn, sizeof dn, "%sstate%ld", x->prefix->s_name, (long)(systimer_gettime() * 1000) % 100000000L);
     x->stateName = gensym(dn);
     x->stateDict = dictionary_new();
     x->stateDict = dictobj_register(x->stateDict, &x->stateName);
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15k (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ 2026-10-15l (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 
