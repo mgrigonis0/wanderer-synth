@@ -189,6 +189,7 @@ static void testClicks() {
         rig.load(0, "/sine.wav", sine(80, 4, 0.5));
         rig.load(1, "/sine2.wav", sine(110, 3, 0.4));
         rig.msg("gptch", {0});           // no pitch change: the tone stays low, so the test is strict
+        rig.msg("grepeat", {1}); rig.msg("grev", {1}); rig.msg("gtrip", {1}); rig.msg("gdot", {1});
         rig.msg("rdall", {100});
         rig.m->rng.reseed(1000 + run);
         rig.msg("grand");
@@ -246,6 +247,7 @@ static void testBuzz() {
         rig.tempo(174);
         rig.load(0, "/d.wav", drumLoop(174, 2, nullptr));
         rig.msg("gbuzz", {(double)buzz});
+        rig.msg("grepeat", {1});
         rig.play(true);
         for (int k = 0; k < 120; k++) {
             rig.m->rng.reseed(500 + k);
@@ -287,6 +289,24 @@ static void testLoopShare() {
     fails += expect(rollsLoop < rolls * 0.25 && looped < hits * 0.2, "Random: Loop in about 1 roll of 5, never on hits of the others");
 }
 
+// Allow Rep off: no bursts, no loops (the settings stay)
+static void testRepOff() {
+    std::printf("allow rep\n");
+    Rig rig;
+    rig.keep = false;
+    rig.load(0, "/d.wav", drumLoop(125, 2, nullptr));
+    ParamSet& ps = rig.m->files[0].ps;
+    ps.b[RCHANCE] = 1.f; ps.b[LOOP] = 0.3f;
+    rig.m->sendParams(0, 3);
+    rig.play(true);
+    rig.run(6);
+    fails += expect(rig.pl->minRepGapMs > 1e8 && rig.pl->minLoopMs > 1e8, "Rep off (the default): no bursts, no loops");
+    rig.msg("grepeat", {1});
+    rig.run(6);
+    fails += expect(rig.pl->minRepGapMs < 1e8 && rig.pl->minLoopMs < 1e8, "Rep on: bursts and loops play");
+    fails += expect(ps.b[RCHANCE] == 1.f && ps.b[LOOP] == 0.3f, "switching Rep never changes the settings");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -313,6 +333,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "buttons") testButtons();
     if (only.empty() || only == "buzz") testBuzz();
     if (only.empty() || only == "loopshare") testLoopShare();
+    if (only.empty() || only == "rep") testRepOff();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

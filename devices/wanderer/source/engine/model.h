@@ -205,7 +205,7 @@ public:
             {"chaos", G_CHAOS}, {"gdensity", G_GDENS}, {"gpitch", G_GPITCH}, {"gscale", G_GSCALE}, {"macro", G_MACRO},
             {"gtrip", G_TRIP}, {"gdot", G_DOT}, {"gptch", G_PTCH}, {"grev", G_REV}, {"quant", G_QUANT}, {"qhit", G_QHIT},
             {"glen", G_GLEN}, {"even", G_EVEN}, {"comp", G_COMP}, {"stereo", G_STEREO}, {"volume", G_VOLUME},
-            {"limit", G_LIMIT}, {"playing", G_PLAYING}, {"gbuzz", G_BUZZ}};
+            {"limit", G_LIMIT}, {"playing", G_PLAYING}, {"gbuzz", G_BUZZ}, {"grepeat", G_REP}};
         for (auto& gl : GL) if (m == gl.first) { global(gl.second, n(0)); return; }
     }
 
@@ -863,7 +863,7 @@ public:
         // the global controls back to their defaults (Out stays as set: Even, Comp, Stereo, Volume, Limit)
         static const std::pair<const char*, double> D[] = {
             {"macro", 100}, {"quant", 0}, {"glen", 0}, {"qhit", 2}, {"gmethod", 0}, {"chaos", 50}, {"gdensity", 0},
-            {"gpitch", 0}, {"mutate", 0}, {"gscale", 0}, {"gtrip", 1}, {"gdot", 1}, {"gptch", 1}, {"grev", 1}, {"gbuzz", 0},
+            {"gpitch", 0}, {"mutate", 0}, {"gscale", 0}, {"gtrip", 0}, {"gdot", 0}, {"gptch", 0}, {"grev", 0}, {"gbuzz", 0}, {"grepeat", 0},
             {"glock", 0}, {"locklen", 1}, {"slide", 0}, {"msens", 0}, {"mlen", 0}, {"rdall", 100}};
         for (auto& d : D) { Out o; o.sel = "gset"; o.str = d.first; o.nums = {d.second}; host->ui(o); }
         sendAll();

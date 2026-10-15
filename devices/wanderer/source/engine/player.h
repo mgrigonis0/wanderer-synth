@@ -86,7 +86,7 @@ public:
             fp[f].B = fp[f].A;
             fp[f].rng.reseed(1 + f * 7919 + 12345);
         }
-        g[G_CHAOS] = 50; g[G_MACRO] = 100; g[G_TRIP] = 1; g[G_DOT] = 1; g[G_PTCH] = 1; g[G_REV] = 1;
+        g[G_CHAOS] = 50; g[G_MACRO] = 100;   // every Allow switch starts off
         g[G_QHIT] = 2; g[G_STEREO] = 100; g[G_VOLUME] = 0; g[G_LIMIT] = 1; g[G_TEMPO] = 120; g[G_LOCKLEN] = 2;
         volS = 1; stereoS = 1;
     }
@@ -454,6 +454,7 @@ private:
         const bool ptch = g[G_PTCH] > 0.5;
         if (!ptch) { hvPenv = 0; hvGlide = 0; hvGspread = 0; }    // Pitch off: no pitch change of any kind (global Pitch still applies)
         if (g[G_REV] < 0.5) hvRev = 0;
+        if (g[G_REP] < 0.5) hvLoop = 0;            // Allow Rep off: no loops (and no bursts, below)
         if (hvRspace == 2 && g[G_TRIP] < 0.5) hvRspace = 0;
         // global Length: + fuller (Start to 0, Length, Gate and release toward full), - shorter
         const double lgk = clampd(g[G_GLEN] / 100, -1, 1), lgp = std::max(lgk, 0.0), lgn = std::min(lgk, 0.0);
@@ -514,7 +515,7 @@ private:
             F.rstepv = (int)std::floor(hvRstep + 0.5);
             F.rfade = hvRfade; F.rtotal = rcnt;
         }
-        const bool dorep = prim && hurep < hvRchance && hslice >= 0;
+        const bool dorep = prim && g[G_REP] > 0.5 && hurep < hvRchance && hslice >= 0;
         double spc = hvRspace == 0 ? 0.03125 : (hvRspace == 1 ? 0.015625 : 0.0208333);
         if (dorep) {
             // Buzz off: a burst never gets faster than its spacing (Shape > 0 starts slower and speeds up TO it),

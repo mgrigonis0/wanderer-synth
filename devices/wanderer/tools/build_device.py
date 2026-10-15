@@ -107,6 +107,7 @@ INFO = {
     "gdot": "Allow dotted waits.",
     "gptch": "Allow pitch changes: file pitch, per-hit pitch, pitch envelope, glide, repeat steps. The global Pitch dial still transposes.",
     "grev": "Allow reverse playback.",
+    "grepeat": "Allow repeating: the bursts (Repeat tab) and Loop (Play tab). Off = every hit plays once; the settings are kept.",
     "gbuzz": "Allow buzz: repeats faster than 30 ms, loops shorter than 50 ms and evenly spaced grains, which turn into a pitched tone. Off = they stay rhythmic.",
     "grand": "New random settings for every file (and fresh loops for locked files). Depth: how far they move.",
     "rdall": "How far Random All moves the settings: 100 % = a completely new roll, lower = a nudge.",
@@ -348,11 +349,11 @@ bang_at_init.append(scale)
 to_engine("gscale", scale, 1400, 930)
 label("Allow", cellx("master", 2, S0), ROWB, CELL)
 aw = (CELL - CG) / 2
-for i, (n, t) in enumerate((("gtrip", "Trip"), ("gdot", "Dot"), ("gptch", "Pitch"), ("grev", "Rev"), ("gbuzz", "Buzz"))):
-    # Buzz sits under Pitch, the same size, off by default
+for i, (n, t) in enumerate((("gtrip", "Trip"), ("gdot", "Dot"), ("gptch", "Pitch"), ("grev", "Rev"), ("gbuzz", "Buzz"), ("grepeat", "Rep"))):
+    # a 2 x 3 block: Trip Dot / Pitch Rev / Buzz Rep; every switch starts off
     button(n, t, (cellx("master", 2, S0) + (i % 2) * (aw + CG), ROWB + 13 + (i // 2) * 15, aw, 12), C["shape"], toggle=True,
-           init=0 if n == "gbuzz" else 1, longn="Allow " + t, at=(i * 70, 200))
-for n in ("gtrip", "gdot", "gptch", "grev", "gbuzz"):
+           init=0, longn="Allow " + t, at=(i * 70, 200))
+for n in ("gtrip", "gdot", "gptch", "grev", "gbuzz", "grepeat"):
     for b in boxes:
         if b["box"]["id"] == ctl[n]:
             b["box"]["fontsize"] = 7.0
@@ -429,7 +430,7 @@ m1 = msg("text Sure?", (300, 500, 70, 22)); m0 = msg("text Clear all", (380, 500
 wire(route, 1, sel, 0); wire(sel, 0, m1, 0); wire(sel, 1, m0, 0); wire(m1, 0, clearall, 0); wire(m0, 0, clearall, 0)
 # Clear All resets the global controls
 GSET = ["macro", "quant", "glen", "qhit", "gmethod", "chaos", "gdensity", "gpitch", "mutate", "gscale", "gtrip", "gdot",
-        "gptch", "grev", "gbuzz", "glock", "locklen", "slide", "msens", "mlen", "rdall"]
+        "gptch", "grev", "gbuzz", "grepeat", "glock", "locklen", "slide", "msens", "mlen", "rdall"]
 rg = obj("route " + " ".join(GSET), (200, 540, 500, 22), ins=2, outs=len(GSET) + 1)
 wire(route, 2, rg, 0)
 for k, n in enumerate(GSET):
