@@ -10,11 +10,9 @@ Mutate, 8 memory slots with Slide, global Quant, Allow switches, and an output c
 
 ## Current state
 - Build **2026-10-16a** (console: `wanderer~ 2026-10-16a (engine) ready` and `wanderer: patch 2026-10-16a`).
-  Offline tests all pass, 0 warnings; Mac build and release by CI.
-- Working in Live (15l): drop a file, slicing, playback, UI (approved layout), buttons, Allow switches incl. Buzz and Rep.
-- **16a rebuilds saving after the Lifegiver recipe** (CONVENTIONS "Saving in the Live set"). 15k/15l lost everything on
-  reopen: the pattr's parameter mode was box-level only (Live saved an empty blob), and it held a dict *name*.
-  **Not yet tested in Live.**
+  Offline tests all pass, 0 warnings; pushed, CI green, release `wanderer-latest`.
+- Working in Live: drop a file, slicing, playback, UI (approved layout), buttons, Allow switches incl. Buzz and Rep, and
+  **saving: everything comes back after saving the set and reopening it (16a, confirmed by the user).**
 - Not yet tested in Live: Lock, Store/recall, Mutate, two Wanderers side by side, long sessions.
 
 ## Structure
@@ -81,7 +79,6 @@ blobs, Stored Only, no initial value).
 - Live's undo of a save step is not followed (the device keeps what plays and saves it again).
 
 ## Next step
-1. Live test of 16a: drop two files, lock one, Store a slot, save the set, quit Live, reopen. Expected console:
-   `state: restored (saved by 2026-10-16a), 2 files …` and `state: memory slot n restored`. If not, check the set file
-   (`gunzip -c set.als`, `<BlobSlot>` of State / Mem n; INSTALL.md "Checking a set file") and send the console.
-2. Then: Lock, Store/recall, Mutate, two Wanderers side by side (saving must not cross over).
+Live tests not done yet: Lock, Store/recall with Slide, Mutate over a long session, two Wanderers side by side
+(each must reopen with its own files and slots). If saving ever fails: console lines `state: …`, and INSTALL.md
+"Checking a set file" (`<BlobSlot>` of State / Mem n).
