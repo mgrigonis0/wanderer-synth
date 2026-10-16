@@ -40,6 +40,17 @@ Stable rules for every device in this repo. Device-specific state lives in `devi
 - Don't call user functions with side effects (e.g. an RNG) inside `if` blocks.
 - Brain → engine requests: the brain counts a request number up; the engine acts once when the number changes. The engine never writes a slot the brain writes.
 
+## Saving in the Live set
+
+Proven in Live 11.3 (Lifegiver 15e, lifegiver-audio repo): a hidden `[pattr]` blob parameter holding a number list is saved in the set and restored on reopen, per device, no crosstalk. For a generated device:
+- **Parameter mode of a plain object (`pattr`, `dict`) goes in `saved_object_attributes`**, as Max writes it: `"saved_object_attributes": {"parameter_enable": 1, "parameter_mappable": 0}` (plus the box-level `"parameter_enable": 1`). A box-level `parameter_enable` alone only works for UI objects (`live.dial` etc.); on a pattr it is silently ignored: the pattr holds its value during the session, but Live saves an **empty blob**, so everything is lost on reopen.
+- The pattr gets `"varname": "<its name>"`; `valueof`: `parameter_type` 3 (blob), `parameter_invisible` 1 (Stored Only), Initial Enable 0 and no `parameter_initial`.
+- Store numbers, never a dict name: a pattr given `dictionary <name>` saves only the name. Text goes in as byte values (UTF-8, so non-English letters survive); no new symbol per save (Max never frees symbols).
+- One Max message holds at most 32767 items: keep each store under 30000 numbers. A bigger state is split over several stores (one pattr each), and each store is rewritten only when its part changed.
+- Numbers may come back as 32-bit floats: round before saving, and split whole numbers above 2^24 (sample positions) in two.
+- Live restores the value as the device loads. Still ask more than once on load (0 / 300 / 800 ms), call it a new device only after 1.5 s, and save nothing before that. A pattr echoes every value it is given: recognise your own save coming back.
+- Debug: a `.als` is gzip'd XML. `gunzip -c set.als` and look at the device's `<BlobSlot>`: empty `<Blob />` means nothing was stored.
+
 ## Max JS rules
 
 - Dicts turn 1-element arrays into scalars; no nested arrays, no `null` (use a converter like `toArr`).

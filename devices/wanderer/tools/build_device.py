@@ -6,15 +6,20 @@ Writes devices/wanderer/Wanderer/Wanderer.maxpat (plain patcher) and Wanderer.am
 Signal:   [phasor~ 1n @lock 1] (bar phase) -> wanderer~ -> plugout~
 Controls: every Live control -> [prepend <name>] -> wanderer~ ; the views (jsui) -> wanderer~
 Info:     wanderer~ outlet 2 -> every view (each picks its own messages), and [route ...] for the patch:
-          fstate (per-file buttons), cleararm, gset (Clear All resets), getstate / dictionary (saving), relink, meter
+          fstate (per-file buttons), cleararm, gset (Clear All resets), relink, meter
 Files:    wanderer~ sends "replace <path>" to [r ---ld<n>] -> [buffer~ ---w<n>]; its "done" bang -> "loaded <n-1>"
-Saving:   [pattr state] is a hidden Live parameter (blob): it holds the engine's state dict inside the Live set
+Saving:   9 hidden Live parameters (blob, Stored Only): [pattr st0] "State" (the device) and [pattr st1..8] "Mem 1..8"
+          (one memory slot each), each holding a number list. wanderer~ outlet 3: "getstate" bangs them all, "st<k>
+          <numbers>" sets one; each answers through [prepend statelist <k>]. CONVENTIONS "Saving in the Live set".
 """
 import json
+import re
 import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+VERSION = re.search(r'WANDERER_VERSION "([^"]+)"', (ROOT / "source/engine/version.h").read_text()).group(1)
+NSTORE = 9                    # = 1 + NSLOT (model.h)
 OUT = ROOT / "Wanderer"
 NF = 16
 
@@ -50,10 +55,14 @@ def wire(src, so, dst, di):
     lines.append({"patchline": {"source": [src, so], "destination": [dst, di]}})
 
 
-def valueof(longname, short, ptype, lo, hi, init, unitstyle=1, exponent=1.0, units=None, enum=None, invisible=0):
+def valueof(longname, short, ptype, lo, hi, init, unitstyle=1, exponent=1.0, units=None, enum=None, invisible=0,
+            initial_enable=1):
+    """initial_enable=0: no initial value at all (the stores: the proven combination, Lifegiver 15e)."""
     v = {"parameter_longname": longname, "parameter_shortname": short, "parameter_type": ptype,
-         "parameter_mmin": lo, "parameter_mmax": hi, "parameter_initial": [init],
-         "parameter_initial_enable": 1, "parameter_unitstyle": unitstyle}
+         "parameter_mmin": lo, "parameter_mmax": hi,
+         "parameter_initial_enable": 1 if initial_enable else 0, "parameter_unitstyle": unitstyle}
+    if initial_enable:
+        v["parameter_initial"] = [init]
     if exponent != 1.0:
         v["parameter_exponent"] = exponent
     if units:
@@ -133,7 +142,7 @@ def info(name, title):
 
 
 # --------------------------------------------------------------------------------------------- core
-eng = obj("wanderer~ ---wnd", (40, 300, 140, 22), ins=1, outs=3, outtypes=["signal", "signal", ""])
+eng = obj("wanderer~ ---wnd", (40, 300, 140, 22), ins=1, outs=4, outtypes=["signal", "signal", "", ""])
 phas = obj("phasor~ 1n @lock 1", (40, 260, 120, 22), ins=2, outs=1, outtypes=["signal"])
 plug = obj("plugout~", (40, 350, 60, 22), ins=2, outs=0)
 wire(phas, 0, eng, 0); wire(eng, 0, plug, 0); wire(eng, 1, plug, 1)
@@ -161,22 +170,36 @@ for i in range(1, NF + 1):
     lm = msg(f"loaded {i - 1}", (x, y + 56, 60, 22))
     wire(rr, 0, bf, 0); wire(bf, 1, lm, 0); wire(lm, 0, eng, 0)
 
-# saving: a hidden blob parameter holding the engine's dict
-pattr = obj("pattr state", (600, 300, 82, 22), ins=1, outs=3, parameter_enable=1,
-            saved_attribute_attributes=valueof("State", "State", 3, 0, 1, 0, invisible=1))
-wire(pattr, 0, eng, 0)
+# saving in the Live set (CONVENTIONS "Saving in the Live set", proven in Lifegiver 15e): hidden blob parameters
+# holding number lists. Parameter mode of a plain object (pattr) is an OBJECT attribute: it goes in
+# saved_object_attributes, as Max writes it. A box-level parameter_enable alone is ignored on a pattr, and Live then
+# saves an empty blob (Wanderer 15k/15l, Lifegiver 15a-15d). No initial value (Initial Enable 0), Stored Only.
+sroute = obj("route getstate " + " ".join(f"st{k}" for k in range(NSTORE)), (600, 360, 420, 22), ins=2, outs=NSTORE + 2)
+wire(eng, 3, sroute, 0)
+tget = obj("t b", (600, 390, 30, 22), ins=1, outs=1, outtypes=["bang"])
+wire(sroute, 0, tget, 0)
+for k in range(NSTORE):
+    name = "State" if k == 0 else f"Mem {k}"
+    x = 600 + k * 100
+    pattr = obj(f"pattr st{k}", (x, 420, 60, 22), ins=1, outs=3, parameter_enable=1, varname=f"st{k}",
+                saved_object_attributes={"parameter_enable": 1, "parameter_mappable": 0},
+                saved_attribute_attributes=valueof(name, name, 3, 0, 1, 0, invisible=1, initial_enable=0))
+    pre = obj(f"prepend statelist {k}", (x, 450, 95, 22))
+    wire(tget, 0, pattr, 0); wire(sroute, k + 1, pattr, 0)
+    wire(pattr, 0, pre, 0); wire(pre, 0, eng, 0)
 
 # engine -> patch
-route = obj("route fstate cleararm gset getstate dictionary relink", (200, 400, 330, 22), ins=2, outs=7)
+route = obj("route fstate cleararm gset relink", (200, 400, 220, 22), ins=2, outs=5)
 wire(eng, 2, route, 0)
-tget = obj("t b", (420, 430, 30, 22), ins=1, outs=1, outtypes=["bang"])
-wire(route, 3, tget, 0); wire(tget, 0, pattr, 0)
-pdict = obj("prepend dictionary", (480, 460, 110, 22))
-wire(route, 4, pdict, 0); wire(pdict, 0, pattr, 0)
-odlg = obj("opendialog sound", (560, 430, 100, 22), ins=1, outs=2)
-prl = obj("prepend relinkpath", (560, 460, 110, 22))
-trl = obj("t b", (560, 405, 30, 22), outtypes=["bang"])   # "relink <slot>": opendialog only takes a bang
-wire(route, 5, trl, 0); wire(trl, 0, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
+odlg = obj("opendialog sound", (440, 430, 100, 22), ins=1, outs=2)
+prl = obj("prepend relinkpath", (440, 460, 110, 22))
+trl = obj("t b", (440, 405, 30, 22), outtypes=["bang"])   # "relink <slot>": opendialog only takes a bang
+wire(route, 3, trl, 0); wire(trl, 0, odlg, 0); wire(odlg, 0, prl, 0); wire(prl, 0, eng, 0)
+
+# the patch's build in the Max window, next to the engine's
+vmsg = msg(f"patch {VERSION}", (140, 20, 120, 22))
+vprint = obj("print wanderer", (140, 50, 80, 22), ins=1, outs=0)
+wire(thisdev, 0, vmsg, 0); wire(vmsg, 0, vprint, 0)
 
 # --------------------------------------------------------------------------------------------- layout (1x)
 DEV_H = 169

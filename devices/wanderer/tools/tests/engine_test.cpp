@@ -150,10 +150,9 @@ static void testSaveRestore() {
     a.msg("store");
     a.run(3);   // the save is debounced
     fails += expect(a.host.saves > 0, "the state is saved after edits");
-    StateDoc doc = a.host.saved;
-    Rig b;
+    Rig b(false);
     b.disk = a.disk;
-    b.m->readState(doc);
+    b.openSet(a.host);
     b.run(0.3);
     bool ok = true;
     for (int f : {0, 3}) {
@@ -171,8 +170,8 @@ static void testSaveRestore() {
     fails += expect(pok, "the locked loop comes back");
     fails += expect(b.m->slots[5] && b.m->slots[5]->used, "memory slots come back");
     // a moved file: reported missing, nothing crashes
-    Rig c;
-    c.m->readState(doc);
+    Rig c(false);
+    c.openSet(a.host);
     c.run(0.2);
     fails += expect(c.m->files[0].state == F_MISSING, "a file that moved is shown as missing (click to relink)");
 }
@@ -327,14 +326,13 @@ static void testKeptCopies() {
     for (int i = 0; i < 3; i++) kept = kept && a.m->files[i].path.find("/Wanderer Samples/") != std::string::npos;
     fails += expect(kept, "a name-only drop is kept as the device's own copy");
     fails += expect(a.m->files[1].name == "loop.aif", "Live's TEMP-… prefix is not shown");
-    StateDoc doc = a.host.saved;
-    Rig b;
+    Rig b(false);
     for (auto& kv : a.disk) if (kv.first.compare(0, 5, "TEMP-") != 0) b.disk[kv.first] = kv.second;   // TEMP copies gone
-    b.m->restored = false;
     std::vector<Model::Atom> late(1);
     late[0].num = false; late[0].s = names[2];
     b.m->message("drop", late);                 // the Drop strip repeating its last file while the set loads
-    b.m->readState(doc);
+    b.openSet(a.host);
+    b.m->message("drop", late);                 // ... or just after
     b.run(0.5);
     bool ok = true;
     for (int i = 0; i < 3; i++) {
@@ -345,6 +343,135 @@ static void testKeptCopies() {
     }
     fails += expect(ok, "reopened: all three files back with their slicing");
     fails += expect(b.m->files[3].state == F_EMPTY, "the Drop strip's repeat at load is not loaded as a new file");
+}
+
+// Saving in the Live set: number lists in NSTORE hidden stores (CONVENTIONS "Saving in the Live set")
+static void testStores() {
+    std::printf("stores\n");
+    // a heavy session: 16 files, all locked with varying knobs, all 8 memory slots stored
+    Rig a;
+    a.tempo(120);
+    for (int f = 0; f < NF; f++) {
+        const std::string p = f == 5 ? "/Users/m/Garsai/ąžuolas būgnai.wav" : "/Users/m/Samples/A long folder name/file " + std::to_string(f) + ".wav";
+        a.load(f, p, f % 2 ? drumLoop(120, 8, nullptr, f + 1) : legato(0.25, 48, nullptr));
+    }
+    for (int f = 0; f < NF; f++) for (int q = 0; q < NK; q += 3) if (!PDEF[q].steady) { a.m->files[f].ps.m[q] = 1; a.m->files[f].ps.r[q] = 0.5f; }
+    for (int f = 0; f < NF; f++) a.m->sendParams(f, 3);
+    a.play(true);
+    a.run(9);
+    a.msg("glock", {1});
+    a.run(1);
+    for (int s = 0; s < NSLOT; s++) { a.msg("slot", {(double)s}); a.msg("store"); a.run(0.1); }
+    a.run(3);
+    size_t biggest = 0, total = 0;
+    bool all = true;
+    for (int k = 0; k < NSTORE; k++) { biggest = std::max(biggest, a.host.set[k].size()); total += a.host.set[k].size(); all = all && !a.host.set[k].empty(); }
+    std::printf("    heavy session: %zu numbers in all, biggest store %zu\n", total, biggest);
+    fails += expect(all && biggest <= STATE_MAX_NUMBERS, "every store is written and fits one Max message");
+    // reopen, with Live keeping 32-bit numbers
+    Rig b(false);
+    b.disk = a.disk;
+    b.host.float32 = true;
+    b.openSet(a.host);
+    b.run(0.5);
+    bool files = true, loops = true, mem = true;
+    for (int f = 0; f < NF; f++) {
+        const FileModel& x = a.m->files[f];
+        const FileModel& y = b.m->files[f];
+        files = files && y.state == F_READY && y.path == x.path && y.tab.ns == x.tab.ns;
+        for (int p = 0; files && p < NP; p++) files = x.ps.b[p] == y.ps.b[p];
+        loops = loops && y.lock && x.pat.cnt == y.pat.cnt && x.pat.cnt > 0;
+        for (int i = 0; loops && i < x.pat.cnt; i++) {
+            loops = x.pat.hits[i].ph == y.pat.hits[i].ph && x.pat.hits[i].slice == y.pat.hits[i].slice;
+            for (int q = 0; loops && q < NK; q++) loops = std::fabs(x.pat.hits[i].off[q] - y.pat.hits[i].off[q]) <= 0.5 / 2047 + 1e-6;
+        }
+    }
+    for (int s = 0; s < NSLOT; s++) {
+        mem = mem && b.m->slots[s] && b.m->slots[s]->used;
+        for (int f = 0; mem && f < NF; f++) mem = b.m->slots[s]->hasPat[f] == a.m->slots[s]->hasPat[f] &&
+                                                   b.m->slots[s]->pats[(size_t)f].cnt == a.m->slots[s]->pats[(size_t)f].cnt;
+    }
+    fails += expect(files, "16 files, their slicing and settings come back (32-bit numbers in the set)");
+    fails += expect(b.m->files[5].path == "/Users/m/Garsai/ąžuolas būgnai.wav", "a path with Lithuanian letters comes back exactly");
+    fails += expect(loops, "every locked loop comes back (offsets within 1/4000)");
+    fails += expect(mem, "all 8 memory slots come back with their loops");
+    b.run(3);
+    fails += expect(b.host.saves == 0, "reopening saves nothing (no undo step in Live)");
+
+    // after an edit only the device store is written; Store writes only its slot's store
+    b.msg("slot", {3});   // recall slot 3 (the edit below goes into it with Store)
+    b.run(3);
+    int before[NSTORE];
+    for (int k = 0; k < NSTORE; k++) before[k] = b.host.storeWrites[k];
+    b.msg("select", {2});
+    std::vector<Model::Atom> args(3);
+    args[0].d = CUT; args[1].num = false; args[1].s = "r"; args[2].d = 37;
+    b.m->message("set", args);
+    b.run(3);
+    bool only0 = b.host.storeWrites[0] == before[0] + 1;
+    for (int k = 1; k < NSTORE; k++) only0 = only0 && b.host.storeWrites[k] == before[k];
+    fails += expect(only0, "a knob edit rewrites only the device store");
+    b.msg("store"); b.run(3);
+    fails += expect(b.host.storeWrites[4] == before[4] + 1 && b.host.storeWrites[5] == before[5], "Store rewrites only that slot's store");
+
+    // a garbled or foreign list is refused whole
+    std::vector<double> bad = a.host.set[0];
+    bad[bad.size() / 2] += 1;
+    StateDoc d;
+    fails += expect(!decodeState(bad, 0, d) && !decodeState(a.host.set[0], 1, d) && decodeState(a.host.set[0], 0, d),
+                    "a changed number or another store's list is refused");
+    std::vector<double> big;
+    putBig(big, 31000000);   // a slice 11 minutes into a file
+    StateDoc bd; bd.num["x"] = big;
+    StateDoc back;
+    std::vector<double> enc = encodeState(bd, 0);
+    for (double& x : enc) x = (double)(float)x;
+    fails += expect(decodeState(enc, 0, back) && getBig(*back.get("x"), 0) == 31000000, "sample positions past 2^24 survive 32-bit numbers");
+
+    // nothing in the set: a new device after 1.5 s; a valid state arriving later (within 10 s) still wins
+    Rig c(false);
+    c.disk = a.disk;
+    c.host.answers = false;
+    c.openSet(a.host);
+    c.run(1.7);
+    fails += expect(c.m->restored && c.m->files[0].state == F_EMPTY && c.host.logged("a new device"), "no answer: a new device after 1.5 s");
+    c.run(1);
+    c.host.answers = true;
+    c.host.requestState();
+    c.run(0.5);
+    fails += expect(c.m->files[0].state == F_READY && c.m->slots[7] && c.m->slots[7]->used, "the set's state arriving late still wins");
+
+    // an empty set (pattr's bare 0) is a new device, quietly
+    Rig e(false);
+    e.openSet(TestHost());
+    e.run(2);
+    fails += expect(e.m->restored && !e.host.logged("unreadable"), "empty stores: a new device, no complaint");
+    e.load(0, "/x.wav", drumLoop(120, 1, nullptr));
+    fails += expect(e.m->files[0].state == F_READY, "a drop after loading is taken");
+    e.run(3);
+    fails += expect(!e.host.set[0].empty(), "a new device saves once something changed");
+
+    // the set's store changes behind our back (Live's undo of one of our saves): the device saves what plays again
+    const int w0 = b.host.storeWrites[0];
+    b.host.set[0] = a.host.set[0];
+    b.host.answer(0);
+    b.run(3);
+    fails += expect(b.host.storeWrites[0] == w0 + 1 && std::fabs(b.m->files[2].ps.r[CUT] - 0.37f) < 1e-6,
+                    "a different list after loading is not taken; the device's own state is saved again");
+
+    // too big for a store (every knob varying, 256-hit loops everywhere): saved without the loops, and said so
+    Rig h;
+    h.load(0, "/d.wav", drumLoop(120, 2, nullptr));
+    for (int f = 0; f < NF; f++) {
+        Pattern& P = h.m->files[f].pat;
+        P = Pattern(); P.len = 8; P.cnt = PAT_MAX;
+        for (int i = 0; i < PAT_MAX; i++) { P.hits[i].ph = i / 32.0f; P.hits[i].slice = (short)(i % 4); for (int q = 0; q < NK; q++) P.hits[i].off[q] = 0.3f; }
+        h.m->files[f].lock = true;
+    }
+    h.m->dirty(10);
+    h.run(0.5);
+    fails += expect(h.host.set[0].size() <= STATE_MAX_NUMBERS && !h.host.set[0].empty() && h.host.logged("too big"),
+                    "a device too big for one store is saved without its loops (and the Max window says so)");
 }
 
 static void testCpu() {
@@ -375,6 +502,7 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "loopshare") testLoopShare();
     if (only.empty() || only == "rep") testRepOff();
     if (only.empty() || only == "kept") testKeptCopies();
+    if (only.empty() || only == "stores") testStores();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

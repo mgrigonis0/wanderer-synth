@@ -5,18 +5,19 @@
 // Inlet: signal = bar phase (phasor~ 1n @lock 1); messages = every control (see Model::message), plus
 //   init                     the device finished loading (live.thisdevice): pull the saved state
 //   loaded <slot 0..15>      a buffer~ finished reading
-//   dictionary <name>        the saved state, from the pattr
+//   statelist <k> <numbers>  what hidden store k ([pattr st<k>]) holds: its answer to getstate, or its echo
 // Outlets: 0 left audio, 1 right audio, 2 info for the patch and the views:
 //   files/flocks/fmutes/sel/fstate, wave/wstarts/wen/ww, tab/pb/pr/pm/pv, slots, misc, status, hit, meter,
-//   cleararm, gset <name> <value>, getstate, relink, dictionary <name> (to the pattr)
+//   cleararm, gset <name> <value>, relink
+// 3 the stores (Saving in the Live set): getstate (bang every store), st<k> <numbers> (put this list into store k)
 #include "ext.h"
 #include "ext_obex.h"
 #include "ext_buffer.h"
-#include "ext_dictobj.h"
 #include "ext_path.h"
 #include "z_dsp.h"
 
 #include "../../engine/model.h"
+#include "../../engine/version.h"
 
 #include <condition_variable>
 #include <cstdlib>
@@ -54,7 +55,8 @@ public:
     void clearBuffer(int f) override;
     void analyze(int f, int gen, const SliceJob& job) override;
     void askRelink(int f) override;
-    void saveState() override;
+    void requestState() override;
+    void storeState(int k, const std::vector<double>& v) override;
     bool fileExists(const std::string& path) override;
     void log(const std::string& t) override;
     std::string persistFile(int f, const std::string& name) override;
@@ -68,6 +70,8 @@ struct t_wanderer {
     std::recursive_mutex* mx;
     Worker* wk;
     void* infoOut;
+    void* storeOut;
+    float* blk;                    // perform's work buffers (BLK each: phase, left, right), made once in new
     void* tickClock;
     t_symbol* prefix;
     t_symbol* bufName[NF];
@@ -77,14 +81,10 @@ struct t_wanderer {
     std::string* pendingPath;      // NF entries: a load waiting for the voices to fade
     double* pendingAt;
     double* loadDeadline;
-    t_dictionary* stateDict;
-    t_symbol* stateName;
-    bool initDone, gotState, saving;
-    double initAt;
     double meterAt;
-    uint64_t lastHash;
-    std::string lastFiles;
 };
+
+static const long BLK = 4096;   // perform works in blocks of at most this many samples (never allocates)
 
 static t_class* s_class = nullptr;
 
@@ -171,43 +171,15 @@ void Glue::askRelink(int f) {
     outlet_anything(x->infoOut, gensym("relink"), 1, &a);
 }
 
-void Glue::saveState() {
-    if (!x->stateDict) return;
-    StateDoc d;
-    x->model->writeState(d);
-    // nothing changed since the last save: no new step in Live's undo history
-    uint64_t h = 1469598103934665603ull;
-    auto mix = [&h](const void* p, size_t n) { const unsigned char* c = (const unsigned char*)p; for (size_t i = 0; i < n; i++) { h ^= c[i]; h *= 1099511628211ull; } };
-    for (auto& kv : d.num) { mix(kv.first.data(), kv.first.size()); mix(kv.second.data(), kv.second.size() * sizeof(double)); }
-    for (auto& kv : d.str) { mix(kv.first.data(), kv.first.size()); mix(kv.second.data(), kv.second.size()); }
-    if (h == x->lastHash) return;
-    x->lastHash = h;
-    {
-        std::string files;
-        int nfiles = 0;
-        for (auto& kv : d.str)
-            if (kv.first.size() > 5 && kv.first.compare(kv.first.size() - 5, 5, ".path") == 0) {
-                nfiles++;
-                files += "  slot " + std::to_string(std::atoi(kv.first.c_str() + 1) + 1) + ": " + kv.second;
-            }
-        if (files != x->lastFiles) {
-            x->lastFiles = files;
-            object_post((t_object*)x, "saved: %d file%s%s", nfiles, nfiles == 1 ? "" : "s", files.c_str());
-        }
-    }
-    dictionary_clear(x->stateDict);
-    std::vector<t_atom> at;
-    for (auto& kv : d.num) {
-        at.resize(kv.second.size());
-        for (size_t i = 0; i < kv.second.size(); i++) atom_setfloat(&at[i], kv.second[i]);
-        if (at.empty()) { t_atom z; atom_setfloat(&z, 0); dictionary_appendatoms(x->stateDict, gensym(kv.first.c_str()), 0, &z); }
-        else dictionary_appendatoms(x->stateDict, gensym(kv.first.c_str()), (long)at.size(), at.data());
-    }
-    for (auto& kv : d.str) dictionary_appendsym(x->stateDict, gensym(kv.first.c_str()), gensym(kv.second.c_str()));
-    x->saving = true;
-    t_atom a; atom_setsym(&a, x->stateName);
-    outlet_anything(x->infoOut, gensym("dictionary"), 1, &a);
-    x->saving = false;
+void Glue::requestState() { outlet_anything(x->storeOut, gensym("getstate"), 0, nullptr); }
+
+void Glue::storeState(int k, const std::vector<double>& v) {
+    if (v.size() > STATE_MAX_NUMBERS) return;
+    std::vector<t_atom> at(v.size());
+    for (size_t i = 0; i < v.size(); i++) atom_setfloat(&at[i], v[i]);
+    char sel[16];
+    std::snprintf(sel, sizeof sel, "st%d", k);
+    outlet_anything(x->storeOut, gensym(sel), (short)at.size(), at.data());
 }
 
 void Glue::log(const std::string& t) { object_post((t_object*)x, "%s", t.c_str()); }
@@ -307,9 +279,7 @@ static void wnd_tick(t_wanderer* x) {
             done.swap(x->wk->done);
         }
         for (Done& d : done) x->model->analysisDone(d.f, d.gen, d.res);
-        // nothing came from the set within 1.5 s of loading: a new device
-        if (x->initDone && !x->gotState && ms >= x->initAt + 1500) { x->gotState = true; x->model->noState(); }
-        x->model->tick(ms);
+        x->model->tick(ms);   // also: asking the stores again, "new device" after 1.5 s, saving
     }
     if (ms >= x->meterAt) {
         x->meterAt = ms + 40;
@@ -365,10 +335,8 @@ static void wnd_anything(t_wanderer* x, t_symbol* s, long argc, t_atom* argv) {
 }
 
 static void wnd_init(t_wanderer* x) {
-    if (x->initDone) return;
-    x->initDone = true;
-    x->initAt = now_ms();
-    outlet_anything(x->infoOut, gensym("getstate"), 0, nullptr);   // the pattr answers with "dictionary <name>"
+    std::lock_guard<std::recursive_mutex> g(*x->mx);
+    x->model->init(now_ms());   // asks the stores: each [pattr] answers through [prepend statelist <k>]
 }
 
 static void wnd_loaded(t_wanderer* x, long f) {
@@ -382,61 +350,15 @@ static void wnd_loaded(t_wanderer* x, long f) {
     x->model->bufferLoaded((int)f, frames > 0, frames, sr);
 }
 
-static void wnd_dictionary(t_wanderer* x, t_symbol* name) {
-    // the saved state, once per load (whatever name pattr gives it); our own dict echoing back while saving is not
-    if (x->saving || x->gotState) {
-        if (!x->saving) object_post((t_object*)x, "state: ignored a second state (%s)", name->s_name);
-        return;
-    }
-    t_dictionary* d = dictobj_findregistered_retain(name);
-    if (!d) return;
-    StateDoc doc;
-    long n = 0;
-    t_symbol** keys = nullptr;
-    dictionary_getkeys(d, &n, &keys);
-    for (long i = 0; i < n; i++) {
-        t_symbol* k = keys[i];
-        if (dictionary_entryisstring(d, k)) {
-            t_symbol* v = nullptr;
-            dictionary_getsym(d, k, &v);
-            if (v) doc.str[k->s_name] = v->s_name;
-            continue;
-        }
-        long ac = 0;
-        t_atom* av = nullptr;
-        if (dictionary_getatoms(d, k, &ac, &av) == MAX_ERR_NONE) {
-            std::vector<double> v;
-            if (ac == 1 && atom_gettype(av) == A_SYM) { doc.str[k->s_name] = atom_getsym(av)->s_name; continue; }
-            for (long j = 0; j < ac; j++) v.push_back(atom_getfloat(av + j));
-            doc.num[k->s_name] = v;
-        }
-    }
-    if (keys) dictionary_freekeys(d, n, keys);
-    dictobj_release(d);
-    {
-        std::string files;
-        int nfiles = 0;
-        for (auto& kv : doc.str)
-            if (kv.first.size() > 5 && kv.first.compare(kv.first.size() - 5, 5, ".path") == 0) {
-                nfiles++;
-                files += "  slot " + std::to_string(std::atoi(kv.first.c_str() + 1) + 1) + ": " + kv.second;
-            }
-        object_post((t_object*)x, "restored: %d file%s%s", nfiles, nfiles == 1 ? "" : "s", files.c_str());
-    }
-    std::lock_guard<std::recursive_mutex> g(*x->mx);
-    x->gotState = true;
-    x->model->readState(doc);
-}
-
 static void wnd_int(t_wanderer* x, long v) { (void)x; (void)v; }      // pattr sends a bare 0 when nothing was saved
 static void wnd_float(t_wanderer* x, double v) { (void)x; (void)v; }
 
 // ---------------------------------------------------------------------------------------------------
 static void wnd_perform64(t_wanderer* x, t_object*, double** ins, long numins, double** outs, long numouts, long n, long, void*) {
     if (numouts < 2) return;
-    static thread_local std::vector<float> ph, L, R;
-    if ((long)ph.size() < n) { ph.resize((size_t)n); L.resize((size_t)n); R.resize((size_t)n); }
-    for (long i = 0; i < n; i++) ph[(size_t)i] = numins > 0 ? (float)ins[0][i] : 0.f;
+    float* ph = x->blk;
+    float* L = x->blk + BLK;
+    float* R = x->blk + 2 * BLK;
     for (int f = 0; f < NF; f++) {
         x->locked[f] = nullptr;
         x->pl->src[f] = Source();
@@ -451,9 +373,14 @@ static void wnd_perform64(t_wanderer* x, t_object*, double** ins, long numins, d
         x->pl->src[f].sr = buffer_getsamplerate(b);
         if (x->pl->src[f].chans < 1 || x->pl->src[f].frames < 2) x->pl->src[f].data = nullptr;
     }
-    x->pl->process(ph.data(), L.data(), R.data(), (int)n, sys_getsr());
+    const double sr = sys_getsr();
+    for (long o = 0; o < n; o += BLK) {
+        const long m = n - o < BLK ? n - o : BLK;
+        for (long i = 0; i < m; i++) ph[i] = numins > 0 ? (float)ins[0][o + i] : 0.f;
+        x->pl->process(ph, L, R, (int)m, sr);
+        for (long i = 0; i < m; i++) { outs[0][o + i] = L[i]; outs[1][o + i] = R[i]; }
+    }
     for (int f = 0; f < NF; f++) if (x->locked[f]) buffer_unlocksamples(x->locked[f]);
-    for (long i = 0; i < n; i++) { outs[0][i] = L[(size_t)i]; outs[1][i] = R[(size_t)i]; }
 }
 
 static void wnd_dsp64(t_wanderer* x, t_object* dsp64, short*, double, long, long) {
@@ -468,8 +395,8 @@ static t_max_err wnd_notify(t_wanderer* x, t_symbol* s, t_symbol* msg, void* sen
 static void wnd_assist(t_wanderer*, void*, long m, long a, char* s) {
     if (m == ASSIST_INLET) std::snprintf(s, 256, "(signal) bar phase, control messages");
     else {
-        const char* t[3] = {"(signal) Left", "(signal) Right", "Info for the views and the patch"};
-        std::snprintf(s, 256, "%s", t[a < 0 ? 0 : (a > 2 ? 2 : a)]);
+        const char* t[4] = {"(signal) Left", "(signal) Right", "Info for the views and the patch", "To the hidden stores (saving)"};
+        std::snprintf(s, 256, "%s", t[a < 0 ? 0 : (a > 3 ? 3 : a)]);
     }
 }
 
@@ -477,6 +404,7 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     t_wanderer* x = (t_wanderer*)object_alloc(s_class);
     if (!x) return nullptr;
     dsp_setup((t_pxobject*)x, 1);
+    x->storeOut = outlet_new((t_object*)x, NULL);   // outlets are made right to left: this one is outlet 3
     x->infoOut = outlet_new((t_object*)x, NULL);
     outlet_new((t_object*)x, "signal");
     outlet_new((t_object*)x, "signal");
@@ -509,17 +437,11 @@ static void* wnd_new(t_symbol*, long argc, t_atom* argv) {
     x->model = new Model(x->pl, x->glue);
     x->wk = new Worker();
     x->wk->th = std::thread(worker_run, x);
-    x->initDone = false; x->gotState = false; x->saving = false;
-    x->initAt = 0; x->meterAt = 0; x->lastHash = 0;
-    char dn[256];
-    // a name of our own for this session: the dict pattr brings back from the set must never clash with it
-    std::snprintf(dn, sizeof dn, "%sstate%ld", x->prefix->s_name, (long)(systimer_gettime() * 1000) % 100000000L);
-    x->stateName = gensym(dn);
-    x->stateDict = dictionary_new();
-    x->stateDict = dictobj_register(x->stateDict, &x->stateName);
+    x->meterAt = 0;
+    x->blk = new float[3 * BLK]();
     x->tickClock = clock_new(x, (method)wnd_tick);
     clock_fdelay(x->tickClock, 50.);
-    post("wanderer~ 2026-10-15l (engine) ready, device %s", x->prefix->s_name);
+    post("wanderer~ " WANDERER_VERSION " (engine) ready, device %s", x->prefix->s_name);
     return x;
 }
 
@@ -535,7 +457,6 @@ static void wnd_free(t_wanderer* x) {
     if (x->wk->th.joinable()) x->wk->th.join();
     delete x->wk;
     for (int f = 0; f < NF; f++) object_free(x->bref[f]);
-    if (x->stateDict) dictobj_unregister(x->stateDict);
     {
         // anything still queued between the threads
         Report r;
@@ -563,6 +484,7 @@ static void wnd_free(t_wanderer* x) {
     delete[] x->pendingPath;
     delete[] x->pendingAt;
     delete[] x->loadDeadline;
+    delete[] x->blk;
 }
 
 void ext_main(void*) {
@@ -572,7 +494,6 @@ void ext_main(void*) {
     class_addmethod(c, (method)wnd_notify, "notify", A_CANT, 0);
     class_addmethod(c, (method)wnd_init, "init", 0);
     class_addmethod(c, (method)wnd_loaded, "loaded", A_LONG, 0);
-    class_addmethod(c, (method)wnd_dictionary, "dictionary", A_SYM, 0);
     class_addmethod(c, (method)wnd_int, "int", A_LONG, 0);
     class_addmethod(c, (method)wnd_float, "float", A_FLOAT, 0);
     class_addmethod(c, (method)wnd_anything, "anything", A_GIMME, 0);

@@ -16,6 +16,8 @@
 
 #include "analysis.h"
 #include "player.h"
+#include "state.h"
+#include "version.h"
 
 namespace wnd {
 
@@ -52,7 +54,9 @@ struct Host {
     virtual void clearBuffer(int f) = 0;
     virtual void analyze(int f, int gen, const SliceJob& job) = 0;  // then model.analysisDone()
     virtual void askRelink(int f) = 0;
-    virtual void saveState() = 0;                                   // the host calls model.writeState() and stores it
+    // Saving in the Live set: NSTORE hidden blob parameters ([pattr], see build_device.py), each holding a number list
+    virtual void requestState() = 0;                                // ask every store (answers: model.stateFrom())
+    virtual void storeState(int store, const std::vector<double>&) = 0;   // put this list into that store
     virtual bool fileExists(const std::string& path) = 0;
     virtual void log(const std::string&) {}
     // Live keeps each slot's file with the set (one hidden file holder per slot); the host forwards these to it
@@ -62,13 +66,12 @@ struct Host {
     virtual std::string persistFile(int, const std::string&) { return ""; }
 };
 
-// Flat saved state: numbers and text by key.
-struct StateDoc {
-    std::map<std::string, std::vector<double>> num;
-    std::map<std::string, std::string> str;
-    const std::vector<double>* get(const std::string& k) const { auto i = num.find(k); return i == num.end() ? nullptr : &i->second; }
-    double get1(const std::string& k, double def) const { auto v = get(k); return v && !v->empty() ? (*v)[0] : def; }
-};
+// Stores: 0 = the device (files, slicing, settings, loops), 1..8 = one memory slot each. One store holds one Max
+// message (STATE_MAX_NUMBERS), so the memory slots get their own; a slot's store changes only when that slot does.
+constexpr int NSTORE = 1 + NSLOT;
+constexpr int STATE_FORMAT = 7;
+constexpr double LATE_RESTORE_MS = 10000;   // a valid state arriving this long after init still wins
+constexpr double NEW_DEVICE_MS = 1500;      // nothing valid by then: a new device
 
 // The slicing pass with its retry ladder: under 4 slices, try again with more sensitivity, then the other method.
 inline SliceResult runSliceJob(Analysis& an, const SliceJob& job) {
@@ -152,6 +155,12 @@ public:
     int gMethod = 0, gLock = 0, lockBars = 2;
     double depth[2 + NTAB];             // Random depth: all, file, then one per tab
     bool restored = false;              // nothing is saved before the set's own state had its chance to load
+    bool byFallback = false;            // "new device" was decided by the timeout (a late real state may still win)
+    double initAt = -1;
+    int asks = 0;
+    std::vector<double> lastSaved[NSTORE];   // what each store holds as far as we know (our own echo is skipped)
+    std::unique_ptr<StateDoc> pendingSlot[NSLOT];   // slot stores that answered before the device store
+    bool seen[NSTORE] = {};             // a valid answer came from this store during this load
     double nowMs = 0;
     double saveAt = -1, clearArmUntil = -1;
     Rng rng;
@@ -190,6 +199,7 @@ public:
         if (m == "slicetoggle") { sliceToggle((int)n(0)); return; }
         if (m == "sliceweight") { sliceWeight((int)n(0), n(1)); return; }
         if (m == "drop") { drop(s(0)); return; }
+        if (m == "statelist") { stateFrom((int)n(0, -1), std::vector<Atom>(a.begin() + (a.empty() ? 0 : 1), a.end())); return; }
         if (m == "relinkpath") { relink(s(0)); return; }
         if (m == "slotfile") { slotFile((int)n(0, -1), s(1)); return; }
         // ---- memory ----
@@ -223,8 +233,100 @@ public:
         for (int f = 0; f < NF; f++)
             if (files[f].resliceAt >= 0 && ms >= files[f].resliceAt) { files[f].resliceAt = -1; reslice(f); }
         if (clearArmUntil >= 0 && ms >= clearArmUntil) { clearArmUntil = -1; ui("cleararm", {0}); }
-        if (saveAt >= 0 && ms >= saveAt && restored) { saveAt = -1; host->saveState(); }
+        if (!restored && initAt >= 0) {
+            if (asks == 1 && ms >= initAt + 300) { asks = 2; host->requestState(); }
+            if (asks == 2 && ms >= initAt + 800) { asks = 3; host->requestState(); }
+            if (ms >= initAt + NEW_DEVICE_MS) noState();
+        }
+        if (saveAt >= 0 && ms >= saveAt && restored) { saveAt = -1; save(); }
     }
+
+    // ================================================================ loading and saving (Live set)
+    // The device finished loading (live.thisdevice): ask the stores now, again at +300 ms and +800 ms.
+    void init(double ms) {
+        if (initAt >= 0) return;
+        nowMs = ms;
+        initAt = ms;
+        asks = 1;
+        host->requestState();
+    }
+
+    // An answer from store `k`: its number list (or whatever the pattr holds: nothing, a 0, words).
+    void stateFrom(int k, const std::vector<Atom>& a) {
+        if (k < 0 || k >= NSTORE) return;
+        std::vector<double> v;
+        bool words = false;
+        for (auto& x : a) { if (!x.num) { words = true; break; } v.push_back(x.d); }
+        if (!words && !v.empty() && v == lastSaved[k]) return;   // our own save coming back
+        StateDoc d;
+        const bool valid = !words && decodeState(v, k, d) && (int)d.get1("v", 0) == STATE_FORMAT;
+        const bool late = initAt >= 0 && nowMs - initAt <= LATE_RESTORE_MS;
+        if (!valid) {
+            if (!v.empty() && !(v.size() == 1 && v[0] == 0) && (late || initAt < 0))
+                host->log("state: store " + std::to_string(k) + " held something unreadable (" + std::to_string(a.size()) + " items), ignored");
+            return;
+        }
+        // the first valid answer of each store in this load is the set's; any later different one (Live's undo of
+        // one of our saves, say) is not taken: what plays now is saved again, so the set and the device agree
+        if (k == 0) {
+            if (!restored || (late && byFallback && !seen[0])) {
+                if (byFallback) host->log("state: the set's state arrived late; using it");
+                seen[0] = true;
+                readState(d);
+                lastSaved[0] = v;
+                for (int s = 0; s < NSLOT; s++) if (pendingSlot[s]) { readSlot(s, *pendingSlot[s]); pendingSlot[s].reset(); }
+            } else { lastSaved[0] = v; dirty(); }
+            return;
+        }
+        const int s = k - 1;
+        if (!restored) { pendingSlot[s].reset(new StateDoc(d)); seen[k] = true; lastSaved[k] = v; return; }
+        if (late && !seen[k]) { seen[k] = true; readSlot(s, d); lastSaved[k] = v; return; }
+        lastSaved[k] = v;
+        dirty();
+    }
+
+    // nothing came from the set (a new device): saving may start
+    void noState() {
+        restored = true;
+        byFallback = initAt >= 0;
+        for (int s = 0; s < NSLOT; s++) if (pendingSlot[s]) { readSlot(s, *pendingSlot[s]); pendingSlot[s].reset(); }
+        if (initAt >= 0) host->log("state: nothing saved in the set (a new device)");
+        sendAll();
+    }
+
+    // store k as a number list; one too big for a store is written without its loops (and said so)
+    std::vector<double> encodeStore(int k) const {
+        StateDoc d;
+        if (k == 0) writeState(d); else writeSlot(k - 1, d);
+        std::vector<double> v = encodeState(d, k);
+        if (v.size() <= STATE_MAX_NUMBERS) return v;
+        if (k == 0) writeState(d, false); else writeSlot(k - 1, d, false);
+        v = encodeState(d, k);
+        host->log(std::string("state: ") + (k == 0 ? "the device" : "memory slot " + std::to_string(k)) +
+                  " is too big to keep its locked loops in the set; saved without them");
+        if (v.size() <= STATE_MAX_NUMBERS) return v;
+        host->log("state: still too big; not saved");
+        return {};
+    }
+
+    // every store whose list changed (identical saves are skipped: no new step in Live's undo history)
+    void save() {
+        int nsaved = 0;
+        std::string files;
+        for (int k = 0; k < NSTORE; k++) {
+            std::vector<double> v = encodeStore(k);
+            if (v.empty() || v == lastSaved[k]) continue;
+            lastSaved[k] = v;          // first: the pattr echoes it straight back
+            host->storeState(k, v);
+            nsaved++;
+        }
+        if (nsaved) {
+            int nf = 0;
+            for (int f = 0; f < NF; f++) if (!this->files[f].path.empty()) { nf++; files += "  slot " + std::to_string(f + 1) + ": " + this->files[f].path; }
+            if (files != lastFilesLog) { lastFilesLog = files; host->log("saved: " + std::to_string(nf) + (nf == 1 ? " file" : " files") + files); }
+        }
+    }
+    std::string lastFilesLog;
 
     // ================================================================ host callbacks
     void bufferLoaded(int f, bool ok, long frames, double sr) {
@@ -298,9 +400,11 @@ public:
     void relinkAnswer(int f, const std::string& path) { if (!path.empty()) loadFile(f, path); }
 
     // ================================================================ state
-    void writeState(StateDoc& d) const {
+    // store 0: the device (everything but the memory slots)
+    void writeState(StateDoc& d, bool loops = true) const {
         d.num.clear(); d.str.clear();
-        d.num["v"] = {6};
+        d.num["v"] = {(double)STATE_FORMAT};
+        d.str["by"] = WANDERER_VERSION;
         d.num["misc"] = {(double)sel, (double)curTab, (double)curSlot, (double)slideIdx, msens, mlen, (double)gMethod,
                          (double)gLock, (double)lockBars};
         d.num["depth"] = std::vector<double>(depth, depth + 2 + NTAB);
@@ -310,36 +414,41 @@ public:
             putParams(d, k, F.ps);
             if (!F.path.empty()) d.str[k + "path"] = F.path;
             d.num[k + "flags"] = {(double)F.lock, (double)F.mute, (double)F.wroll};
+            std::vector<double> st, en, w;
             if (F.state == F_READY) {
-                std::vector<double> st, en, w;
-                for (int i = 0; i < F.tab.ns; i++) { st.push_back(F.tab.start[i]); en.push_back(F.tab.en[i]); w.push_back(F.tab.w[i]); }
-                d.num[k + "starts"] = st; d.num[k + "en"] = en; d.num[k + "w"] = w;
-                d.num[k + "frames"] = {(double)F.tab.frames};
+                for (int i = 0; i < F.tab.ns; i++) { putBig(st, (long)F.tab.start[i]); en.push_back(F.tab.en[i]); w.push_back(F.tab.w[i]); }
             } else if (!F.savedStarts.empty()) {
-                d.num[k + "starts"] = std::vector<double>(F.savedStarts.begin(), F.savedStarts.end());
-                d.num[k + "en"] = std::vector<double>(F.keepEn.begin(), F.keepEn.end());
-                d.num[k + "w"] = std::vector<double>(F.keepW.begin(), F.keepW.end());
+                for (long x : F.savedStarts) putBig(st, x);
+                en.assign(F.keepEn.begin(), F.keepEn.end());
+                w.assign(F.keepW.begin(), F.keepW.end());
             }
-            if (F.lock && F.pat.cnt > 0) putPattern(d, k + "pat", F.pat);
+            if (!st.empty()) { d.num[k + "starts"] = st; d.num[k + "en"] = en; d.num[k + "w"] = w; }
+            if (loops && F.lock && F.pat.cnt > 0) putPattern(d, k + "pat", F.pat);
         }
-        for (int s = 0; s < NSLOT; s++) {
-            if (!slots[s] || !slots[s]->used) continue;
-            const Slot& S = *slots[s];
-            const std::string k = "s" + std::to_string(s) + ".";
-            d.num[k + "used"] = {1};
-            std::vector<double> lk;
-            for (int f = 0; f < NF; f++) {
-                putParams(d, k + "f" + std::to_string(f) + ".", S.ps[f]);
-                lk.push_back(S.lk[f]);
-                if (S.hasPat[f]) putPattern(d, k + "f" + std::to_string(f) + ".pat", S.pats[(size_t)f]);
-            }
-            d.num[k + "lk"] = lk;
+    }
+
+    // stores 1..8: one memory slot each
+    void writeSlot(int s, StateDoc& d, bool loops = true) const {
+        d.num.clear(); d.str.clear();
+        d.num["v"] = {(double)STATE_FORMAT};
+        const bool used = slots[s] && slots[s]->used;
+        d.num["used"] = {used ? 1.0 : 0.0};
+        if (!used) return;
+        const Slot& S = *slots[s];
+        std::vector<double> lk;
+        for (int f = 0; f < NF; f++) {
+            const std::string k = "f" + std::to_string(f) + ".";
+            putParams(d, k, S.ps[f]);
+            lk.push_back(S.lk[f]);
+            if (loops && S.hasPat[f]) putPattern(d, k + "pat", S.pats[(size_t)f]);
         }
+        d.num["lk"] = lk;
     }
 
     void readState(const StateDoc& d) {
         restored = true;
-        if (d.get1("v", 0) < 6) { sendAll(); return; }
+        byFallback = false;
+        if ((int)d.get1("v", 0) != STATE_FORMAT) { sendAll(); return; }
         if (auto m = d.get("misc")) {
             const std::vector<double>& v = *m;
             if (v.size() >= 9) {
@@ -349,6 +458,8 @@ public:
             }
         }
         if (auto dp = d.get("depth")) for (size_t k = 0; k < dp->size() && k < (size_t)(2 + NTAB); k++) depth[k] = clampd((*dp)[k], 0, 1);
+        int nfiles = 0;
+        std::string names;
         for (int f = 0; f < NF; f++) {
             FileModel& F = files[f];
             const std::string k = "f" + std::to_string(f) + ".";
@@ -358,7 +469,7 @@ public:
             cmd(C_MUTE, f, F.mute);
             F.savedStarts.clear(); F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear();
             if (auto st = d.get(k + "starts")) {
-                for (double x : *st) F.savedStarts.push_back((long)x);
+                for (size_t i = 0; i + 1 < st->size(); i += 2) F.savedStarts.push_back(getBig(*st, i));
                 if (auto en = d.get(k + "en")) for (double x : *en) F.keepEn.push_back(x != 0);
                 if (auto w = d.get(k + "w")) for (double x : *w) F.keepW.push_back((float)x);
                 if (F.keepEn.size() != F.savedStarts.size()) F.keepEn.assign(F.savedStarts.size(), 1);
@@ -369,28 +480,33 @@ public:
             if (F.lock && getPattern(d, k + "pat", F.pat)) { sendPattern(f, 0); cmd(C_LOCK, f, 1); }
             else { F.lock = false; cmd(C_LOCK, f, 0); }
             // the file: where Live's holder says it is, else the saved name
-            auto p = d.str.find(k + "path");
-            const std::string path = !F.livePath.empty() ? F.livePath : (p != d.str.end() ? p->second : std::string());
-            if (!path.empty()) loadFile(f, path, true);
+            const std::string saved = d.gets(k + "path");
+            const std::string path = !F.livePath.empty() ? F.livePath : saved;
+            if (!path.empty()) { loadFile(f, path, true); nfiles++; names += "  slot " + std::to_string(f + 1) + ": " + path; }
         }
-        for (int s = 0; s < NSLOT; s++) {
-            const std::string k = "s" + std::to_string(s) + ".";
-            if (d.get1(k + "used", 0) == 0) { slots[s].reset(); continue; }
-            slots[s].reset(new Slot());
-            Slot& S = *slots[s];
-            S.used = true;
-            const std::vector<double>* lk = d.get(k + "lk");
-            for (int f = 0; f < NF; f++) {
-                getParams(d, k + "f" + std::to_string(f) + ".", S.ps[f]);
-                S.lk[f] = lk && (size_t)f < lk->size() ? (int)(*lk)[(size_t)f] : -1;
-                S.hasPat[f] = getPattern(d, k + "f" + std::to_string(f) + ".pat", S.pats[(size_t)f]);
-            }
-        }
+        host->log("state: restored (saved by " + (d.gets("by").empty() ? std::string("?") : d.gets("by")) + "), " +
+                  std::to_string(nfiles) + (nfiles == 1 ? " file" : " files") + names);
+        lastFilesLog = names;
         sendAll();
     }
 
-    // nothing came from the set (a new device): saving may start
-    void noState() { restored = true; sendAll(); }
+    void readSlot(int s, const StateDoc& d) {
+        if (s < 0 || s >= NSLOT) return;
+        if ((int)d.get1("v", 0) != STATE_FORMAT || d.get1("used", 0) == 0) { slots[s].reset(); sendSlots(); return; }
+        slots[s].reset(new Slot());
+        Slot& S = *slots[s];
+        S.used = true;
+        const std::vector<double>* lk = d.get("lk");
+        for (int f = 0; f < NF; f++) {
+            const std::string k = "f" + std::to_string(f) + ".";
+            getParams(d, k, S.ps[f]);
+            S.lk[f] = lk && (size_t)f < lk->size() ? (int)(*lk)[(size_t)f] : -1;
+            S.hasPat[f] = getPattern(d, k + "pat", S.pats[(size_t)f]);
+        }
+        host->log("state: memory slot " + std::to_string(s + 1) + " restored");
+        sendSlots();
+    }
+
 
     // ================================================================ files
     void select(int n) {
@@ -402,7 +518,7 @@ public:
     void drop(const std::string& path) {
         if (path.empty() || path == "none" || path == "bang") return;   // not a file (a stray bang, an empty strip)
         // the Drop strip repeats its last file when a set opens: that is not a new drop (the state has the files)
-        if (!restored) { host->log("drop ignored while the set is loading: " + path); return; }
+        if (!restored || (initAt >= 0 && nowMs < initAt + NEW_DEVICE_MS)) { host->log("drop ignored while the set is loading: " + path); return; }
         int f = -1;
         if (files[sel].state == F_EMPTY) f = sel;
         else for (int i = 0; i < NF; i++) if (files[i].state == F_EMPTY) { f = i; break; }
@@ -1041,32 +1157,53 @@ private:
         if (auto m = d.get(k + "m")) for (size_t p = 0; p < m->size() && p < (size_t)NK; p++) ps.m[p] = (unsigned char)(*m)[p];
         for (int p = 0; p < NK; p++) if (PDEF[p].steady) { ps.r[p] = 0; ps.m[p] = 0; }
     }
-    // a loop as numbers: len, cnt, then per hit: ph, slice, rep, seed, wait, NK offsets
+    // a loop as numbers: len, cnt, nv, the nv knobs whose offsets vary, then per hit: ph, slice, rep, seed, wait and
+    // the varying offsets two to a number (each 0..4094, 2047 = 0: exact in a 32-bit float; fixed knobs' offsets are 0)
+    static double qoff(float o) { return std::floor((clampd(o, -1, 1) + 1) * 2047 + 0.5); }
+    static float uoff(double q) { return (float)(clampd(q, 0, 4094) / 2047 - 1); }
     static void putPattern(StateDoc& d, const std::string& k, const Pattern& p) {
-        std::vector<double> v{p.len, (double)p.cnt};
+        std::vector<int> vk;
+        for (int q = 0; q < NK; q++) {
+            bool any = false;
+            for (int i = 0; i < p.cnt && !any; i++) any = p.hits[i].off[q] != 0;
+            if (any) vk.push_back(q);
+        }
+        const size_t nv = vk.size();
+        std::vector<double> v{p.len, (double)p.cnt, (double)nv};
+        for (int q : vk) v.push_back(q);
         for (int i = 0; i < p.cnt; i++) {
             const Hit& h = p.hits[i];
             v.push_back(h.ph); v.push_back(h.slice); v.push_back(h.rep); v.push_back(h.seed); v.push_back(h.wait);
-            for (int q = 0; q < NK; q++) v.push_back(h.off[q]);
+            for (size_t j = 0; j < nv; j += 2)
+                v.push_back(qoff(h.off[vk[j]]) * 4096 + (j + 1 < nv ? qoff(h.off[vk[j + 1]]) : 2047));
         }
         d.num[k] = v;
     }
     static bool getPattern(const StateDoc& d, const std::string& k, Pattern& p) {
         auto v = d.get(k);
-        if (!v || v->size() < 2) return false;
+        if (!v || v->size() < 3) return false;
         const std::vector<double>& a = *v;
+        const int cnt = (int)a[1], nv = (int)a[2];
+        if (cnt < 1 || cnt > PAT_MAX || nv < 0 || nv > NK) return false;
+        const size_t per = 5 + (size_t)(nv + 1) / 2;
+        if (a.size() != 3 + (size_t)nv + per * (size_t)cnt) return false;
+        int vk[NK];
+        for (int j = 0; j < nv; j++) { vk[j] = (int)a[3 + (size_t)j]; if (vk[j] < 0 || vk[j] >= NK) return false; }
+        p = Pattern();
         p.len = a[0] > 0 ? a[0] : 4;
-        const int cnt = std::min((int)a[1], PAT_MAX);
-        const size_t per = 5 + NK;
-        if (a.size() < 2 + per * (size_t)cnt) return false;
         p.cnt = cnt;
         for (int i = 0; i < cnt; i++) {
-            const double* x = &a[2 + per * (size_t)i];
+            const double* x = &a[3 + (size_t)nv + per * (size_t)i];
             Hit& h = p.hits[i];
             h.ph = (float)x[0]; h.slice = (short)x[1]; h.rep = (float)x[2]; h.seed = (float)x[3]; h.wait = (float)x[4];
-            for (int q = 0; q < NK; q++) h.off[q] = (float)x[5 + q];
+            for (int j = 0; j < nv; j += 2) {
+                const double pk = x[5 + j / 2];
+                const double hi = std::floor(pk / 4096), lo = pk - hi * 4096;
+                h.off[vk[j]] = uoff(hi);
+                if (j + 1 < nv) h.off[vk[j + 1]] = uoff(lo);
+            }
         }
-        return cnt > 0;
+        return true;
     }
 };
 

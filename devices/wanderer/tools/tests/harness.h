@@ -80,14 +80,21 @@ struct Rig;
 struct TestHost : Host {
     Rig* rig = nullptr;
     std::vector<Out> outs;
-    StateDoc saved;
-    int saves = 0;
+    std::vector<double> set[NSTORE];       // what Live keeps in each hidden store ([pattr], blob)
+    int saves = 0, storeWrites[NSTORE] = {};
+    bool answers = true;                   // the stores answer requests (off: Live restoring late)
+    bool float32 = false;                  // Live keeps 32-bit numbers
+    std::vector<std::string> logs;
+    void answer(int k);
     void ui(const Out& o) override { outs.push_back(o); if (outs.size() > 20000) outs.erase(outs.begin(), outs.begin() + 10000); }
     void loadBuffer(int f, const std::string& path) override;
     void clearBuffer(int f) override;
     void analyze(int f, int gen, const SliceJob& job) override;
     void askRelink(int) override {}
-    void saveState() override;
+    void requestState() override { if (answers) for (int k = 0; k < NSTORE; k++) answer(k); }
+    void storeState(int k, const std::vector<double>& v) override;
+    void log(const std::string& t) override { logs.push_back(t); }
+    bool logged(const std::string& part) const { for (auto& l : logs) if (l.find(part) != std::string::npos) return true; return false; }
     bool fileExists(const std::string& path) override;
     std::map<int, std::string> holder;     // what each slot's hidden live.drop holds
     void keepFile(int f, const std::string& p) override { holder[f] = p; }
@@ -110,7 +117,14 @@ struct Rig {
     bool keep = true;
     std::vector<Report> seen;               // (copies of the R_PLAYED reports would be consumed by the model)
 
-    Rig() { host.rig = this; m.reset(new Model(pl.get(), &host)); m->noState(); }
+    // fresh = a new device (no set to load); otherwise call openSet()
+    explicit Rig(bool fresh = true) { host.rig = this; m.reset(new Model(pl.get(), &host)); if (fresh) m->noState(); }
+
+    // the device loads in a set that holds what `from`'s stores hold
+    void openSet(const TestHost& from) {
+        for (int k = 0; k < NSTORE; k++) host.set[k] = from.set[k];
+        m->init(ms);
+    }
 
     void msg(const std::string& sel, std::vector<double> nums = {}, std::string s = "") {
         std::vector<Model::Atom> a;
@@ -177,7 +191,19 @@ inline std::string TestHost::persistFile(int f, const std::string& name) {
     rig->disk[p] = rig->buf[f];
     return p;
 }
-inline void TestHost::saveState() { saves++; rig->m->writeState(saved); }
+// a pattr outputs its value when asked (bang) and whenever it is set; an empty one gives a bare 0
+inline void TestHost::answer(int k) {
+    std::vector<Model::Atom> a;
+    if (set[k].empty()) { Model::Atom z; z.d = 0; a.push_back(z); }
+    for (double v : set[k]) { Model::Atom x; x.d = float32 ? (double)(float)v : v; a.push_back(x); }
+    rig->m->stateFrom(k, a);
+}
+inline void TestHost::storeState(int k, const std::vector<double>& v) {
+    saves++; storeWrites[k]++;
+    set[k] = v;
+    if (float32) for (double& x : set[k]) x = (double)(float)x;
+    answer(k);   // the echo
+}
 inline bool TestHost::fileExists(const std::string& path) { return path.find('/') == std::string::npos || rig->disk.count(path) > 0; }
 
 // ---- measurements ------------------------------------------------------------------------------
