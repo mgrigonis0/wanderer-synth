@@ -59,13 +59,21 @@ struct FilePlayer {
 };
 
 // ---------------------------------------------------------------------------------------------------
-// output dynamics, ported from the 10-12e device (lookahead compressor, soft limiter)
+// output dynamics: lookahead compressor (ported from the 10-12e device), then the Limit stage:
+// drive into a 2 ms lookahead limiter with a -0.3 dB ceiling, optional soft clipping, a soft knee as the last guard
 struct Dynamics {
-    static constexpr int DL = 8192;
+    static constexpr int DL = 8192, LL = 512;
     float dlL[DL] = {}, dlR[DL] = {};
     int w = 0;
-    double grs = 0, amtS = 0, lim = 1, mx = 1;
-    void reset() { std::memset(dlL, 0, sizeof dlL); std::memset(dlR, 0, sizeof dlR); w = 0; grs = 0; lim = 1; }
+    double grs = 0, amtS = 0;
+    float lL[LL] = {}, lR[LL] = {}, rawL[LL] = {}, rawR[LL] = {}, pk[LL] = {};
+    int lw = 0;
+    double genv = 1, drv = 1, clip = 0, mx = 1, limGr = 0;
+    void reset() {
+        std::memset(dlL, 0, sizeof dlL); std::memset(dlR, 0, sizeof dlR); w = 0; grs = 0;
+        std::memset(lL, 0, sizeof lL); std::memset(lR, 0, sizeof lR); std::memset(rawL, 0, sizeof rawL);
+        std::memset(rawR, 0, sizeof rawR); std::memset(pk, 0, sizeof pk); lw = 0; genv = 1; limGr = 0;
+    }
 };
 
 class Player {
@@ -87,7 +95,7 @@ public:
             fp[f].rng.reseed(1 + f * 7919 + 12345);
         }
         g[G_CHAOS] = 50; g[G_MACRO] = 100;   // every Allow switch starts off
-        g[G_QHIT] = 2; g[G_STEREO] = 100; g[G_VOLUME] = 0; g[G_LIMIT] = 1; g[G_TEMPO] = 120; g[G_LOCKLEN] = 2;
+        g[G_QHIT] = 2; g[G_STEREO] = 100; g[G_VOLUME] = 0; g[G_LIMIT] = 10; g[G_TEMPO] = 120; g[G_LOCKLEN] = 2;
         volS = 1; stereoS = 1;
     }
 
@@ -146,7 +154,7 @@ public:
         }
         posNow.store(P);
         if (wnps > 0) tempoNow.store(wnps * sr * 240.0);
-        grNow.store((float)dyn.grs);
+        grNow.store((float)(dyn.grs + dyn.limGr));
         lvlL.store((float)std::max<double>(peakL, lvlL.load() * 0.85));
         lvlR.store((float)std::max<double>(peakR, lvlR.load() * 0.85));
         playingNow.store(playing ? 1 : 0);
@@ -835,21 +843,41 @@ private:
         l = d.dlL[ri] * gn; r = d.dlR[ri] * gn;
     }
 
+    // Limit 0..100: 0 = off; up to 10 = a safety catch at -0.3 dB (nothing pushed); 10 -> 100 = the mix pushed up to
+    // +18 dB into the limiter, which lets go faster (80 -> 15 ms); 75 -> 100 = soft clipping blended in (grit).
+    // The output never passes -0.3 dB. The signal is 2 ms late in every setting (no jump when it's switched).
     void limit(double& l, double& r) {
         Dynamics& d = dyn;
-        const double sr = this->sr;
-        const double ac = 1 - std::exp(-1 / (0.001 * sr)), rc = 1 - std::exp(-1 / (0.08 * sr)), mc = 1 - std::exp(-1 / (0.01 * sr));
-        const double lim = dbtoa(-0.3), kn = lim * 0.85, kw = lim - kn;
-        const double pk = std::max(std::fabs(l), std::fabs(r));
-        const double tg = pk > lim ? lim / pk : 1;
-        d.lim += (tg - d.lim) * (tg < d.lim ? ac : rc);
-        double yl = l * d.lim, yr = r * d.lim;
+        const double sr = this->sr, v = g[G_LIMIT];
+        const double ceil = dbtoa(-0.3), kn = ceil * 0.85, kw = ceil - kn;
+        const double push = clampd((v - 10) / 90, 0, 1);
+        d.drv += (dbtoa(18 * push) - d.drv) * smooth20;
+        d.clip += (clampd((v - 75) / 25, 0, 1) - d.clip) * smooth20;
+        d.mx += ((v > 0.5 ? 1.0 : 0.0) - d.mx) * (1 - std::exp(-1 / (0.01 * sr)));
+        const int la = std::max(8, std::min(Dynamics::LL - 2, (int)std::floor(0.002 * sr + 0.5)));
+        double xl = l * d.drv, xr = r * d.drv;
+        if (d.clip > 1e-4) {   // soft clipping: rounds the peaks before the limiter catches them
+            xl += (ceil * std::tanh(xl / ceil) - xl) * d.clip;
+            xr += (ceil * std::tanh(xr / ceil) - xr) * d.clip;
+        }
+        const int N = Dynamics::LL;
+        d.lL[d.lw] = (float)xl; d.lR[d.lw] = (float)xr;
+        d.rawL[d.lw] = (float)l; d.rawR[d.lw] = (float)r;
+        d.pk[d.lw] = (float)std::max(std::fabs(xl), std::fabs(xr));
+        float m = 0;   // the loudest peak still ahead of the output (la samples)
+        for (int k = 0, i = d.lw; k <= la; k++, i = i == 0 ? N - 1 : i - 1) m = std::max(m, d.pk[i]);
+        const int ri = (d.lw - la + N) % N;
+        d.lw = (d.lw + 1) % N;
+        const double tg = m > ceil ? ceil / m : 1.0;
+        const double ac = 1 - std::exp(-4.6 / la), rc = 1 - std::exp(-1 / ((0.08 - 0.065 * push) * sr));
+        d.genv += (tg - d.genv) * (tg < d.genv ? ac : rc);
+        double yl = d.lL[ri] * d.genv, yr = d.lR[ri] * d.genv;
         const double al = std::fabs(yl), ar = std::fabs(yr);
         if (al > kn) yl = (yl < 0 ? -1 : 1) * (kn + kw * std::tanh((al - kn) / kw));
         if (ar > kn) yr = (yr < 0 ? -1 : 1) * (kn + kw * std::tanh((ar - kn) / kw));
-        d.mx += ((g[G_LIMIT] > 0.5 ? 1.0 : 0.0) - d.mx) * mc;
-        l = l + (yl - l) * d.mx;
-        r = r + (yr - r) * d.mx;
+        d.limGr = d.mx * -20 * std::log10(std::max(1e-6, d.genv));
+        l = d.rawL[ri] + (yl - d.rawL[ri]) * d.mx;
+        r = d.rawR[ri] + (yr - d.rawR[ri]) * d.mx;
     }
 };
 

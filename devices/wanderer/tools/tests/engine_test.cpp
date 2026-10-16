@@ -474,6 +474,107 @@ static void testStores() {
                     "a device too big for one store is saved without its loops (and the Max window says so)");
 }
 
+// Solo, Undo and the mixer messages
+static void testSoloUndo() {
+    std::printf("solo, undo, mixer\n");
+    Rig a;
+    a.tempo(120);
+    a.load(0, "/d.wav", drumLoop(120, 2, nullptr));
+    a.load(1, "/n.wav", legato(0.4, 12, nullptr));
+    a.load(2, "/h.wav", drumLoop(120, 2, nullptr, 9));
+    a.play(true);
+    a.run(1);
+    a.msg("msolo", {1, 1});
+    a.run(0.2);
+    fails += expect(a.pl->fp[0].mute && !a.pl->fp[1].mute && a.pl->fp[2].mute, "Solo: only the soloed file plays");
+    a.msg("select", {2}); a.msg("fsolo", {1});
+    a.run(0.2);
+    fails += expect(a.pl->fp[0].mute && !a.pl->fp[1].mute && !a.pl->fp[2].mute, "two soloed files both play");
+    a.msg("msolo", {1, 0}); a.msg("fsolo", {0}); a.msg("mmute", {0, 1});
+    a.run(0.2);
+    fails += expect(a.pl->fp[0].mute && !a.pl->fp[1].mute && !a.pl->fp[2].mute, "no solo: Mute works as before");
+    a.msg("mmute", {0, 0});
+    a.msg("fvol", {1, -9});
+    fails += expect(std::fabs(denormOf(VOL, a.m->files[1].ps.b[VOL]) + 9) < 0.01, "a mixer fader sets that file's Volume");
+
+    // Undo
+    a.msg("select", {0}); a.msg("flock", {1});
+    a.run(2.5);
+    const ParamSet p0 = a.m->files[0].ps;
+    const Pattern pat0 = a.m->files[0].pat;
+    a.msg("grand"); a.msg("grand");
+    a.run(0.2);
+    bool changed = false;
+    for (int p = 0; p < NP; p++) changed = changed || a.m->files[0].ps.b[p] != p0.b[p];
+    fails += expect(changed && a.m->undos.size() == 2, "Random all is undoable (two steps kept)");
+    a.msg("undo"); a.msg("undo");
+    a.run(0.2);
+    bool same = a.m->files[0].pat.cnt == pat0.cnt && a.m->files[0].lock;
+    for (int p = 0; same && p < NP; p++) same = a.m->files[0].ps.b[p] == p0.b[p] && (p >= NK || (a.m->files[0].ps.r[p] == p0.r[p] && a.m->files[0].ps.m[p] == p0.m[p]));
+    for (int i = 0; same && i < pat0.cnt; i++) same = a.m->files[0].pat.hits[i].ph == pat0.hits[i].ph && a.m->files[0].pat.hits[i].slice == pat0.hits[i].slice;
+    fails += expect(same && a.m->undos.empty(), "two Undos bring back the settings and the locked loop exactly");
+    for (int k = 0; k < 12; k++) a.msg("frand");
+    fails += expect(a.m->undos.size() == (size_t)NUNDO, "at most 8 steps are kept");
+    a.m->undos.clear();
+    a.msg("slot", {2}); a.msg("store"); a.msg("grand"); a.msg("store");   // slot 2 holds the second roll
+    const ParamSet before = a.m->files[1].ps;
+    a.msg("grand");
+    const ParamSet rolled = a.m->files[1].ps;
+    a.msg("slot", {2});
+    a.msg("undo");
+    bool back = true;
+    for (int p = 0; p < NP; p++) back = back && a.m->files[1].ps.b[p] == rolled.b[p];
+    (void)before;
+    fails += expect(back, "Undo steps back over a memory recall");
+    a.msg("undo");
+    bool back2 = true;
+    for (int p = 0; p < NP; p++) back2 = back2 && a.m->files[1].ps.b[p] == before.b[p];
+    fails += expect(back2, "... and then over the Random before it");
+
+    // Solo is saved with the set
+    a.msg("msolo", {2, 1});
+    a.run(3);
+    Rig b(false);
+    b.disk = a.disk;
+    b.openSet(a.host);
+    b.run(0.3);
+    fails += expect(b.m->files[2].solo && b.pl->fp[0].mute && !b.pl->fp[2].mute, "Solo comes back with the set");
+}
+
+// The Limit slider: 0 = off, 10 = a safety catch, higher = louder and denser; never over -0.3 dB
+static void testLimit() {
+    std::printf("limit\n");
+    long clicks10 = 0, clicks60 = 0;
+    auto measure = [&clicks10, &clicks60](double lim, double& peak, double& rms) {
+        Rig r;
+        r.tempo(120);
+        r.load(0, "/d.wav", drumLoop(120, 2, nullptr));
+        r.load(1, "/n.wav", legato(0.4, 12, nullptr));
+        r.msg("volume", {-12});   // peaks well under the ceiling: Limit 10 has nothing to do
+        r.msg("limit", {lim});
+        r.play(true);
+        r.run(1);
+        r.L.clear(); r.R.clear();
+        r.run(6);
+        peak = 0; rms = 0;
+        for (size_t i = 0; i < r.L.size(); i++) { peak = std::max(peak, (double)std::max(std::fabs(r.L[i]), std::fabs(r.R[i]))); rms += r.L[i] * r.L[i]; }
+        rms = std::sqrt(rms / std::max<size_t>(1, r.L.size()));
+        // the detector's count on this noisy material, compared with Limit 10 (which leaves it alone)
+        if (lim == 10) clicks10 = findClicks(r.L).count;
+        if (lim == 60) clicks60 = findClicks(r.L).count;
+    };
+    double p0, r0, p10, r10, p60, r60, p100, r100;
+    measure(0, p0, r0); measure(10, p10, r10); measure(60, p60, r60); measure(100, p100, r100);
+    std::printf("    peak / rms dB: off %.1f / %.1f, 10 %.1f / %.1f, 60 %.1f / %.1f, 100 %.1f / %.1f\n",
+                20 * std::log10(p0), 20 * std::log10(r0), 20 * std::log10(p10), 20 * std::log10(r10),
+                20 * std::log10(p60), 20 * std::log10(r60), 20 * std::log10(p100), 20 * std::log10(r100));
+    const double ceil = std::pow(10, -0.3 / 20) + 1e-4;
+    fails += expect(p10 <= ceil && p60 <= ceil && p100 <= ceil, "with Limit on, the output never passes -0.3 dB");
+    fails += expect(r60 > r10 * 1.6 && r100 > r60, "pushing Limit makes it louder and denser");
+    fails += expect(std::fabs(20 * std::log10(r10 / r0)) < 1.5, "10 is a safety catch: about the same loudness as off");
+    fails += expect(clicks60 <= clicks10 * 1.02 + 5, "pushing the limiter (60) adds no clicks of its own");
+}
+
 static void testCpu() {
     std::printf("cpu\n");
     Rig rig;
@@ -503,6 +604,8 @@ int main(int argc, char** argv) {
     if (only.empty() || only == "rep") testRepOff();
     if (only.empty() || only == "kept") testKeptCopies();
     if (only.empty() || only == "stores") testStores();
+    if (only.empty() || only == "solo") testSoloUndo();
+    if (only.empty() || only == "limit") testLimit();
     if (only.empty() || only == "cpu") testCpu();
     std::printf(fails ? "\n%d FAILED\n" : "\nall passed\n", fails);
     return fails ? 1 : 0;

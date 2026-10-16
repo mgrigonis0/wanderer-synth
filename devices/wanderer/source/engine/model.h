@@ -126,13 +126,23 @@ struct FileModel {
     std::vector<float> keepW;
     std::vector<long> keepStarts;
     bool wroll = false;                 // weights were rolled by Random (re-drawn after a re-slice)
-    bool lock = false, mute = false;
+    bool lock = false, mute = false, solo = false;
     Pattern pat;
     std::deque<Hit> played;             // the last 512 free hits (ph = song position)
     std::vector<float> peaks;           // waveform overview
     std::string livePath;               // where Live's file holder for this slot says the file is (set on load)
     double resliceAt = -1;              // debounce (ms)
 };
+
+// Undo: what one Random / Init / recall changed, per file (settings, Free/Lock and the loop, slice weights)
+struct UndoFile {
+    ParamSet ps;
+    bool lock = false, wroll = false;
+    std::unique_ptr<Pattern> pat;   // only for a locked file with a loop
+    std::vector<float> w;           // slice weights (Random can roll them)
+};
+struct UndoStep { UndoFile f[NF]; };
+constexpr int NUNDO = 8;
 
 struct Slot {
     bool used = false;
@@ -149,6 +159,7 @@ public:
     Host* host;
     FileModel files[NF];
     std::unique_ptr<Slot> slots[NSLOT];
+    std::deque<std::unique_ptr<UndoStep>> undos;   // newest last, at most NUNDO
     int sel = 0, curTab = 0, curSlot = 0, slideIdx = 0;
     double gv[NGLOBAL] = {};
     double mutate = 0, msens = 0, mlen = 1;
@@ -192,10 +203,16 @@ public:
         if (m == "tabdepth") { depth[2 + curTab] = clampd(n(0) / 100, 0, 1); dirty(); return; }
         if (m == "select") { select((int)n(0)); return; }
         if (m == "frand") { if (n(0, 1) != 0) randomFile(); return; }
-        if (m == "finit") { if (n(0, 1) != 0) initFile(sel); return; }
+        if (m == "finit") { if (n(0, 1) != 0) { pushUndo(); initFile(sel); } return; }
         if (m == "fclear") { if (n(0, 1) != 0) clearFile(sel); return; }
         if (m == "flock") { lockFile(sel, n(0) != 0); sendFiles(); dirty(3000); return; }
-        if (m == "fmute") { files[sel].mute = n(0) != 0; cmd(C_MUTE, sel, files[sel].mute); sendFiles(); dirty(); return; }
+        if (m == "fmute") { setMute(sel, n(0) != 0); return; }
+        if (m == "fsolo") { setSolo(sel, n(0) != 0); return; }
+        // the mixer: <file> <value>
+        if (m == "mmute") { const int f = (int)n(0, -1); if (f >= 0 && f < NF) setMute(f, n(1) != 0); return; }
+        if (m == "msolo") { const int f = (int)n(0, -1); if (f >= 0 && f < NF) setSolo(f, n(1) != 0); return; }
+        if (m == "fvol") { const int f = (int)n(0, -1); if (f >= 0 && f < NF && files[f].state != F_EMPTY) setValue(f, VOL, "b", clampd(n(1), -36, 6)); return; }
+        if (m == "undo") { if (n(0, 1) != 0) undo(); return; }
         if (m == "slicetoggle") { sliceToggle((int)n(0)); return; }
         if (m == "sliceweight") { sliceWeight((int)n(0), n(1)); return; }
         if (m == "drop") { drop(s(0)); return; }
@@ -413,7 +430,7 @@ public:
             const std::string k = "f" + std::to_string(f) + ".";
             putParams(d, k, F.ps);
             if (!F.path.empty()) d.str[k + "path"] = F.path;
-            d.num[k + "flags"] = {(double)F.lock, (double)F.mute, (double)F.wroll};
+            d.num[k + "flags"] = {(double)F.lock, (double)F.mute, (double)F.wroll, (double)F.solo};
             std::vector<double> st, en, w;
             if (F.state == F_READY) {
                 for (int i = 0; i < F.tab.ns; i++) { putBig(st, (long)F.tab.start[i]); en.push_back(F.tab.en[i]); w.push_back(F.tab.w[i]); }
@@ -465,8 +482,7 @@ public:
             const std::string k = "f" + std::to_string(f) + ".";
             getParams(d, k, F.ps);
             sendParams(f, 3);
-            if (auto fl = d.get(k + "flags")) { F.lock = fl->size() > 0 && (*fl)[0] != 0; F.mute = fl->size() > 1 && (*fl)[1] != 0; F.wroll = fl->size() > 2 && (*fl)[2] != 0; }
-            cmd(C_MUTE, f, F.mute);
+            if (auto fl = d.get(k + "flags")) { F.lock = fl->size() > 0 && (*fl)[0] != 0; F.mute = fl->size() > 1 && (*fl)[1] != 0; F.wroll = fl->size() > 2 && (*fl)[2] != 0; F.solo = fl->size() > 3 && (*fl)[3] != 0; }
             F.savedStarts.clear(); F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear();
             if (auto st = d.get(k + "starts")) {
                 for (size_t i = 0; i + 1 < st->size(); i += 2) F.savedStarts.push_back(getBig(*st, i));
@@ -484,6 +500,7 @@ public:
             const std::string path = !F.livePath.empty() ? F.livePath : saved;
             if (!path.empty()) { loadFile(f, path, true); nfiles++; names += "  slot " + std::to_string(f + 1) + ": " + path; }
         }
+        applyMutes();
         host->log("state: restored (saved by " + (d.gets("by").empty() ? std::string("?") : d.gets("by")) + "), " +
                   std::to_string(nfiles) + (nfiles == 1 ? " file" : " files") + names);
         lastFilesLog = names;
@@ -586,9 +603,9 @@ public:
         cmd(C_LOCK, f, 0);
         cmd(C_SLICES, f, 0, nullptr);
         cmd(C_PATTERN, f, 0, nullptr);
-        cmd(C_MUTE, f, 0);
         F.path.clear(); F.name.clear(); F.state = F_EMPTY; F.frames = 0;
-        F.tab = SliceTable(); F.lock = false; F.mute = false; F.pat = Pattern(); F.played.clear();
+        F.tab = SliceTable(); F.lock = false; F.mute = false; F.solo = false; F.pat = Pattern(); F.played.clear();
+        applyMutes();
         F.keepEn.clear(); F.keepW.clear(); F.keepStarts.clear(); F.savedStarts.clear(); F.wroll = false; F.resliceAt = -1;
         host->clearBuffer(f);
         host->forgetFile(f);
@@ -607,8 +624,59 @@ public:
         }
         sendParams(f, 3);
         if (f == sel) sendPage();
+        sendMix();
         dirty();
     }
+
+    // ================================================================ Mute, Solo (any solo silences every file not soloed)
+    void applyMutes() {
+        bool any = false;
+        for (int f = 0; f < NF; f++) any = any || files[f].solo;
+        for (int f = 0; f < NF; f++) cmd(C_MUTE, f, files[f].mute || (any && !files[f].solo));
+    }
+    void setMute(int f, bool on) { files[f].mute = on; applyMutes(); sendFiles(); dirty(); }
+    void setSolo(int f, bool on) {
+        if (on && files[f].state == F_EMPTY) return;
+        files[f].solo = on; applyMutes(); sendFiles(); dirty();
+    }
+
+    // ================================================================ Undo (Random all / file / tab, Init, recall)
+    void pushUndo() {
+        std::unique_ptr<UndoStep> u(new UndoStep());
+        for (int f = 0; f < NF; f++) {
+            const FileModel& F = files[f];
+            UndoFile& x = u->f[f];
+            x.ps = F.ps; x.lock = F.lock; x.wroll = F.wroll;
+            if (F.lock && F.pat.cnt > 0) x.pat.reset(new Pattern(F.pat));
+            if (F.state == F_READY) x.w.assign(F.tab.w, F.tab.w + F.tab.ns);
+        }
+        undos.push_back(std::move(u));
+        while ((int)undos.size() > NUNDO) undos.pop_front();
+        sendUndo();
+    }
+    void undo() {
+        if (undos.empty()) return;
+        std::unique_ptr<UndoStep> u = std::move(undos.back());
+        undos.pop_back();
+        for (int f = 0; f < NF; f++) {
+            FileModel& F = files[f];
+            UndoFile& x = u->f[f];
+            F.ps = x.ps;
+            sendParams(f, 3);
+            if (F.state != F_READY) continue;
+            if ((int)x.w.size() == F.tab.ns) {
+                for (int i = 0; i < F.tab.ns; i++) F.tab.w[i] = x.w[(size_t)i];
+                F.wroll = x.wroll;
+                sendTable(f);
+            }
+            if (x.lock && x.pat) { F.pat = *x.pat; sendPattern(f, 0); F.lock = true; cmd(C_LOCK, f, 1); }
+            else if (x.lock) lockFile(f, true);
+            else if (F.lock) { F.lock = false; cmd(C_LOCK, f, 0); }
+        }
+        sendFiles(); sendWave(); sendPage(); sendMix(); sendUndo();
+        dirty();
+    }
+    void sendUndo() { ui("undo", {(double)undos.size()}); }
 
     // ================================================================ parameters
     // set <param> b|r|m <value>: b in display units (knobs) or index, r in 0..100, m 0/1/2
@@ -624,6 +692,7 @@ public:
         if (!std::strcmp(q.tab, "detect")) scheduleReslice(f, 400);
         if (p == SMODE && f == sel) sendWave();
         if (f == sel) sendPageValue(p);
+        if (p == VOL) sendMix();
         dirty();
     }
 
@@ -842,6 +911,7 @@ public:
     void randomFile() {
         FileModel& F = files[sel];
         if (F.state != F_READY) return;
+        pushUndo();
         randomize(sel, -1, depth[1]);
         freshPattern(sel);
         cmd(C_NUDGE, sel, 0);
@@ -851,12 +921,16 @@ public:
 
     void diceTab(int t) {
         if (t < 0 || t >= NTAB || !std::strcmp(TABS[t], "detect")) return;   // Random never changes the slicing
+        if (files[sel].state == F_READY) pushUndo();
         randomize(sel, t, depth[2 + t]);
         sendPage();
         dirty();
     }
 
     void randomAll() {
+        bool any = false;
+        for (int f = 0; f < NF; f++) any = any || files[f].state == F_READY;
+        if (any) pushUndo();
         for (int f = 0; f < NF; f++) {
             if (files[f].state != F_READY) continue;
             randomize(f, -1, depth[0]);
@@ -976,6 +1050,7 @@ public:
         curSlot = (int)clampd(i, 0, NSLOT - 1);
         sendSlots();
         if (!slots[curSlot] || !slots[curSlot]->used) { dirty(); return; }
+        pushUndo();
         Slot& S = *slots[curSlot];
         const double dur = SLIDES[slideIdx];
         for (int f = 0; f < NF; f++) {
@@ -996,6 +1071,7 @@ public:
         Cmd c; c.type = C_SLIDE; c.a = (float)dur; push(c);
         sendFiles();
         sendPage();
+        sendMix();
         dirty();
     }
 
@@ -1012,6 +1088,8 @@ public:
         ui("cleararm", {0});
         for (int f = 0; f < NF; f++) { clearFile(f); files[f].ps.reset(); sendParams(f, 3); }
         for (int s = 0; s < NSLOT; s++) slots[s].reset();
+        undos.clear();
+        sendUndo();
         curSlot = 0; slideIdx = 0; msens = 0; mlen = 1; gMethod = 0; gLock = 0; lockBars = 2; sel = 0; curTab = 0;
         for (int k = 0; k < 2 + NTAB; k++) depth[k] = 1;
         // the global controls back to their defaults (Out stays as set: Even, Comp, Stereo, Volume, Limit)
@@ -1096,13 +1174,14 @@ public:
     void status(int f, const std::string& t) { if (f == sel) ui("status", {(double)f}, t); }
 
     void sendFiles() {
-        std::vector<double> st, lk, mu;
-        for (int f = 0; f < NF; f++) { st.push_back(files[f].state); lk.push_back(files[f].lock); mu.push_back(files[f].mute); }
+        std::vector<double> st, lk, mu, so;
+        for (int f = 0; f < NF; f++) { st.push_back(files[f].state); lk.push_back(files[f].lock); mu.push_back(files[f].mute); so.push_back(files[f].solo); }
         ui("files", st);
         ui("flocks", lk);
         ui("fmutes", mu);
+        ui("fsolos", so);
         ui("sel", {(double)sel});
-        ui("fstate", {(double)files[sel].lock, (double)files[sel].mute});
+        ui("fstate", {(double)files[sel].lock, (double)files[sel].mute, (double)files[sel].solo});
     }
 
     void sendWave() {
@@ -1137,8 +1216,14 @@ public:
         v.push_back(curSlot);
         ui("slots", v);
     }
+    // the mixer: every file's Volume (dB)
+    void sendMix() {
+        std::vector<double> v;
+        for (int f = 0; f < NF; f++) v.push_back(denormOf(VOL, files[f].ps.b[VOL]));
+        ui("mixvol", v);
+    }
     void sendAll() {
-        sendFiles(); sendWave(); sendPage(); sendSlots();
+        sendFiles(); sendWave(); sendPage(); sendSlots(); sendMix(); sendUndo();
         ui("misc", {(double)slideIdx, depth[0] * 100});
     }
 

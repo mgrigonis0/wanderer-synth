@@ -1,4 +1,4 @@
-// wanderer.gr.js — the compressor's gain reduction as a small bar growing from the right (jsui, Max 8 / ES5).
+// wanderer.gr.js — the gain reduction of Comp and Limit together as a small bar growing from the right (jsui, Max 8 / ES5).
 // in: "meter <gr dB> <level L> <level R> <tempo>"
 
 inlets = 1;

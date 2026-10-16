@@ -32,7 +32,7 @@ xattr -dr com.apple.quarantine ~/Documents/Max\ 8/Library/Wanderer
 1. Drag `Wanderer.amxd` from that folder onto a MIDI track.
 2. Drop an audio file on the **Drop** strip at the left, press Play in Live.
 
-The Max window (open the device editor, then Cmd+M) shows `wanderer~ 2026-10-16a (engine) ready` and `wanderer: patch 2026-10-16a` when
+The Max window (open the device editor, then Cmd+M) shows `wanderer~ 2026-10-16b (engine) ready` and `wanderer: patch 2026-10-16b` when
 the engine and the device loaded.
 A red `wanderer~` box or no sound: copy the red lines from the Max window and send them.
 

@@ -1,0 +1,610 @@
+<title>Wanderer 16b Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the device itself up top (scrolls sideways when narrow), then one close-up per change with its notes. */
+:root {
+  --bg: #26272a;          /* Live's arrangement grey, a touch warm */
+  --surface: #2f3034;
+  --line: #3f4045;
+  --fg: #ececec;
+  --dim: #a7a8ad;
+  --teal: #4fc3c0;
+  --new: #f2b84b;         /* marks what changes */
+  --font-ui: Archivo, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+h1 { margin: 0; font-size: 28px; font-weight: 700; text-wrap: balance; }
+h1 span { color: var(--teal); }
+.lede { margin: 0; max-width: 68ch; color: var(--dim); }
+.lede b { color: var(--fg); font-weight: 600; }
+.key { display: inline-flex; align-items: center; gap: 6px; }
+.dot { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--new); color: #1b1b1b; font: 600 11px/1 var(--font-mono); }
+.device { overflow-x: auto; background: #1a1b1d; border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.device canvas { display: block; }
+.hint { margin: 6px 0 0; font-size: 13px; color: var(--dim); }
+.changes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card h2 { margin: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.zoom { overflow-x: auto; background: #1a1b1d; border-radius: 6px; padding: 10px; }
+.zoom canvas { display: block; }
+.card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--dim); }
+.card ul b { color: var(--fg); font-weight: 600; }
+.readout { font-family: var(--font-mono); font-size: 13px; color: var(--fg); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.readout span em { font-style: normal; color: var(--dim); }
+.curve { width: 100%; max-width: 420px; aspect-ratio: 420 / 200; }
+.foot { color: var(--dim); font-size: 14px; max-width: 75ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Wanderer · proposed build 2026-10-16b · mockup</div>
+    <h1>Solo, Undo, a mixer and a <span>Limit</span> slider</h1>
+    <p class="lede">The device as it would look in Live. Everything else stays where it is. The four changes are marked <span class="key"><span class="dot">1</span>–<span class="dot">4</span></span>. The mockup is live: <b>click Mix</b> in the waveform header, drag the faders and the Limit slider, and click M, S, Solo or Undo.</p>
+  </header>
+
+  <section>
+    <div class="device"><canvas id="full" aria-label="The whole Wanderer device with the proposed changes"></canvas></div>
+    <p class="hint">Shown at 1.4× Live's size. Scroll sideways on a small screen.</p>
+  </section>
+
+  <section class="changes">
+    <article class="card">
+      <h2><span class="dot">1</span>Solo</h2>
+      <div class="zoom"><canvas id="z1" aria-label="Close-up: the buttons under the waveform"></canvas></div>
+      <ul>
+        <li>The row under the waveform gets <b>Solo</b> next to Mute. To make room, <b>Random file</b> becomes <b>Random</b> (one cell instead of two).</li>
+        <li>Several files can be soloed at once. While any file is soloed, the others are silent but keep running in time, the same as Mute.</li>
+        <li>In the file grid, a soloed file gets a blue bar and the silent ones dim.</li>
+        <li>Solo is saved with the set. It isn't stored in memory slots, so recalling a slot never changes it.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2><span class="dot">2</span>Undo</h2>
+      <div class="zoom"><canvas id="z2" aria-label="Close-up: Random all, Depth, Undo and Clear all"></canvas></div>
+      <ul>
+        <li><b>Undo</b> sits right of Random all and Depth, in the empty cell under Shape.</li>
+        <li>It steps back through the <b>last 8</b> jumps: Random all, Random file, Random &lt;tab&gt;, Init, and recalling a memory slot. Each press goes one step further back.</li>
+        <li>It brings back the settings and the locked loops exactly as they were. Files and slicing are not touched.</li>
+        <li>Greyed out when there is nothing to undo. The undo history is not saved with the set.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2><span class="dot">3</span>Mixer</h2>
+      <div class="zoom"><canvas id="z3" aria-label="Close-up: the waveform panel switched to the mixer"></canvas></div>
+      <ul>
+        <li>The waveform header gets a <b>Wave / Mix</b> switch. Mix shows all 16 files side by side in the same space.</li>
+        <li>Each fader is that file's <b>Volume</b> (−36 to +6 dB), the same value as Volume on the Env tab. Double-click a fader for 0 dB.</li>
+        <li><b>M</b> and <b>S</b> under each fader are the file's Mute and Solo. The thin light line inside each fader shows what that file is playing.</li>
+        <li>Click a number to select that file. The header shows its name and level.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2><span class="dot">4</span>Limit slider</h2>
+      <div class="zoom"><canvas id="z4" aria-label="Close-up: the Out section with the Limit slider"></canvas></div>
+      <div class="readout" id="limitReadout" aria-live="polite"></div>
+      <canvas class="curve" id="curve" aria-label="Output peak against input peak for the current Limit setting"></canvas>
+      <ul>
+        <li><b>0</b>: off. <b>10</b> (the default): today's safety catch, nothing pushed.</li>
+        <li><b>10 → 100</b>: the mix is pushed up to <b>+18 dB</b> into the limiter, and it lets go faster (80 → 15 ms). Louder and denser.</li>
+        <li><b>75 → 100</b>: soft clipping is blended in for grit. Back the slider off until the clipping is gone.</li>
+        <li>The output never goes above −0.3 dB. It looks 2 ms ahead, so the limiter itself doesn't crackle. The bar under Comp shows comp and limiter together.</li>
+      </ul>
+    </article>
+  </section>
+
+  <p class="foot">The graph shows where loud peaks end up for the slider value. It's a guide, not a measurement: real material with fast hits gets a little less than the curve.</p>
+</div>
+
+<script>
+const BOXES = [{"c": "panel", "r": [6.0, 4.0, 56.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [67.0, 4.0, 262.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [334.0, 4.0, 227.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [566.0, 4.0, 295.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [866.0, 4.0, 103.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [974.0, 4.0, 56.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "panel", "r": [1035.0, 4.0, 103.0, 161.0], "mode": 0, "bgcolor": [0.11, 0.114, 0.125, 1.0]}, {"c": "jsui", "r": [12.0, 8.0, 44.0, 119.0], "filename": "wanderer.files.js"}, {"c": "live.drop", "r": [12.0, 131.0, 44.0, 30.0], "varname": "drop", "legend": "Drop", "fontsize": 8.0, "textcolor": [0.31, 0.765, 0.753, 1.0], "bordercolor": [0.31, 0.765, 0.753, 0.8], "longname": "Drop"}, {"c": "jsui", "r": [73.0, 8.0, 250.0, 134.0], "filename": "wanderer.wave.js"}, {"c": "jsui", "r": [340.0, 8.0, 215.0, 153.0], "filename": "wanderer.page.js"}, {"c": "live.comment", "r": [569.0, 5.0, 144.0, 14.0], "text": "GROOVE", "fontsize": 9.5, "textcolor": [0.416, 0.659, 0.941, 1.0]}, {"c": "panel", "r": [572.0, 19.0, 138.0, 2.0], "bgcolor": [0.416, 0.659, 0.941, 0.55]}, {"c": "live.comment", "r": [714.0, 5.0, 144.0, 14.0], "text": "SHAPE", "fontsize": 9.5, "textcolor": [0.941, 0.627, 0.314, 1.0]}, {"c": "panel", "r": [717.0, 19.0, 138.0, 2.0], "bgcolor": [0.941, 0.627, 0.314, 0.55]}, {"c": "panel", "r": [713.0, 24.0, 1.0, 114.0], "bgcolor": [0.18, 0.184, 0.204, 1.0]}, {"c": "live.dial", "r": [572.0, 24.0, 44.0, 50.0], "varname": "Quant", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.416, 0.659, 0.941, 1.0], "mmin": 0, "mmax": 100, "initial": [0], "unitstyle": 5, "longname": "Quant"}, {"c": "live.dial", "r": [619.0, 24.0, 44.0, 50.0], "varname": "Density", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.416, 0.659, 0.941, 1.0], "mmin": -100, "mmax": 100, "initial": [0], "unitstyle": 0, "longname": "Density"}, {"c": "live.dial", "r": [666.0, 24.0, 44.0, 50.0], "varname": "Length", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.416, 0.659, 0.941, 1.0], "mmin": -100, "mmax": 100, "initial": [0], "unitstyle": 0, "longname": "Length"}, {"c": "live.comment", "r": [570.0, 80.0, 48.0, 13.0], "text": "Quant to", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.comment", "r": [617.0, 80.0, 48.0, 13.0], "text": "Mode", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.comment", "r": [664.0, 80.0, 48.0, 13.0], "text": "Bars", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.tab", "r": [572.0, 95.0, 44.0, 27.0], "varname": "Quant To", "fontsize": 7.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bgoncolor": [0.416, 0.659, 0.941, 1.0], "activebgoncolor": [0.416, 0.659, 0.941, 1.0], "num_lines_presentation": 2, "mmin": 0, "mmax": 3, "initial": [2], "unitstyle": 9, "enum": ["1/4", "1/8", "1/16", "1/32"], "longname": "Quant To"}, {"c": "live.tab", "r": [619.0, 95.0, 44.0, 27.0], "varname": "Lock Mode", "fontsize": 7.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bgoncolor": [0.949, 0.722, 0.294, 1.0], "activebgoncolor": [0.949, 0.722, 0.294, 1.0], "num_lines_presentation": 2, "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["Free", "Lock"], "longname": "Lock Mode"}, {"c": "live.tab", "r": [666.0, 95.0, 44.0, 27.0], "varname": "Lock Bars", "fontsize": 7.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bgoncolor": [0.949, 0.722, 0.294, 1.0], "activebgoncolor": [0.949, 0.722, 0.294, 1.0], "num_lines_presentation": 2, "mmin": 0, "mmax": 3, "initial": [1], "unitstyle": 9, "enum": ["1", "2", "4", "8"], "longname": "Lock Bars"}, {"c": "live.dial", "r": [717.0, 24.0, 44.0, 50.0], "varname": "Macro", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.941, 0.627, 0.314, 1.0], "mmin": 0, "mmax": 175, "initial": [100], "unitstyle": 5, "longname": "Macro"}, {"c": "live.dial", "r": [764.0, 24.0, 44.0, 50.0], "varname": "Chaos", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.941, 0.627, 0.314, 1.0], "mmin": 0, "mmax": 100, "initial": [50], "unitstyle": 5, "longname": "Chaos"}, {"c": "live.dial", "r": [811.0, 24.0, 44.0, 50.0], "varname": "Mutate", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.941, 0.627, 0.314, 1.0], "mmin": 0, "mmax": 100, "initial": [0], "unitstyle": 5, "longname": "Mutate"}, {"c": "live.dial", "r": [717.0, 82.0, 44.0, 50.0], "varname": "Pitch", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.941, 0.627, 0.314, 1.0], "mmin": -24, "mmax": 24, "initial": [0], "unitstyle": 7, "longname": "Pitch"}, {"c": "live.comment", "r": [762.0, 80.0, 48.0, 13.0], "text": "Scale", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.menu", "r": [764.0, 95.0, 44.0, 14.0], "varname": "Scale", "fontsize": 8.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.925, 0.925, 0.925, 1.0], "arrowcolor": [0.941, 0.627, 0.314, 1.0], "mmin": 0, "mmax": 11, "initial": [0], "unitstyle": 9, "enum": ["Chrom", "Major", "Minor", "Dorian", "Phryg", "Lydian", "Mixo", "HarMin", "MajPen", "MinPen", "Fifths", "Octave"], "longname": "Scale"}, {"c": "live.comment", "r": [809.0, 80.0, 48.0, 13.0], "text": "Allow", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.text", "r": [811.0, 95.0, 20.5, 12.0], "text": "Trip", "varname": "Allow Trip", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Trip"}, {"c": "live.text", "r": [834.5, 95.0, 20.5, 12.0], "text": "Dot", "varname": "Allow Dot", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Dot"}, {"c": "live.text", "r": [811.0, 110.0, 20.5, 12.0], "text": "Pitch", "varname": "Allow Pitch", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Pitch"}, {"c": "live.text", "r": [834.5, 110.0, 20.5, 12.0], "text": "Rev", "varname": "Allow Rev", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Rev"}, {"c": "live.text", "r": [811.0, 125.0, 20.5, 12.0], "text": "Buzz", "varname": "Allow Buzz", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Buzz"}, {"c": "live.text", "r": [834.5, 125.0, 20.5, 12.0], "text": "Rep", "varname": "Allow Rep", "mode": 1, "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.941, 0.627, 0.314, 0.9], "bgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgoncolor": [0.941, 0.627, 0.314, 1.0], "activebgcolor": [0.941, 0.627, 0.314, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Allow Rep"}, {"c": "live.text", "r": [572.0, 146.0, 91.0, 15.0], "text": "Random all", "varname": "Random all", "mode": 0, "fontsize": 8.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.416, 0.659, 0.941, 1.0], "bordercolor": [0.416, 0.659, 0.941, 0.9], "bgoncolor": [0.416, 0.659, 0.941, 1.0], "activebgoncolor": [0.416, 0.659, 0.941, 1.0], "activebgcolor": [0.416, 0.659, 0.941, 0.35], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Random all"}, {"c": "live.numbox", "r": [666.0, 146.0, 44.0, 15.0], "varname": "Random Depth", "fontsize": 8.0, "textcolor": [0.925, 0.925, 0.925, 1.0], "bordercolor": [0.165, 0.169, 0.184, 1.0], "activeslidercolor": [0.416, 0.659, 0.941, 1.0], "mmin": 0, "mmax": 100, "initial": [100], "unitstyle": 5, "longname": "Random Depth"}, {"c": "live.text", "r": [811.0, 146.0, 44.0, 15.0], "text": "Clear all", "varname": "Clear all", "mode": 0, "fontsize": 8.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.75, 0.75, 0.77, 1.0], "bordercolor": [0.75, 0.75, 0.77, 0.9], "bgoncolor": [0.75, 0.75, 0.77, 1.0], "activebgoncolor": [0.75, 0.75, 0.77, 1.0], "activebgcolor": [0.75, 0.75, 0.77, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Clear all"}, {"c": "jsui", "r": [872.0, 8.0, 91.0, 112.0], "filename": "wanderer.memory.js"}, {"c": "live.comment", "r": [870.0, 125.0, 48.0, 13.0], "text": "Slide", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0]}, {"c": "live.menu", "r": [919.0, 126.0, 44.0, 14.0], "varname": "Slide", "fontsize": 8.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.925, 0.925, 0.925, 1.0], "arrowcolor": [0.663, 0.545, 0.91, 1.0], "mmin": 0, "mmax": 6, "initial": [0], "unitstyle": 9, "enum": ["Off", "1/4", "1 bar", "2 bar", "4 bar", "8 bar", "16 bar"], "longname": "Slide"}, {"c": "live.text", "r": [872.0, 146.0, 44.0, 15.0], "text": "Store", "varname": "Store", "mode": 0, "fontsize": 8.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.663, 0.545, 0.91, 1.0], "bordercolor": [0.663, 0.545, 0.91, 0.9], "bgoncolor": [0.663, 0.545, 0.91, 1.0], "activebgoncolor": [0.663, 0.545, 0.91, 1.0], "activebgcolor": [0.663, 0.545, 0.91, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Store"}, {"c": "live.text", "r": [919.0, 146.0, 44.0, 15.0], "text": "Clear", "varname": "Clear Slot", "mode": 0, "fontsize": 8.5, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bordercolor": [0.85, 0.85, 0.85, 0.9], "bgoncolor": [0.85, 0.85, 0.85, 1.0], "activebgoncolor": [0.85, 0.85, 0.85, 1.0], "activebgcolor": [0.85, 0.85, 0.85, 0.25], "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["off", "on"], "longname": "Clear Slot"}, {"c": "live.comment", "r": [977.0, 5.0, 50.0, 14.0], "text": "DETECT", "fontsize": 9.5, "textcolor": [0.77, 0.77, 0.78, 1.0]}, {"c": "panel", "r": [980.0, 19.0, 44.0, 2.0], "bgcolor": [0.77, 0.77, 0.78, 0.55]}, {"c": "live.dial", "r": [980.0, 24.0, 44.0, 50.0], "varname": "Detect Sens", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.77, 0.77, 0.78, 1.0], "mmin": -50, "mmax": 50, "initial": [0], "unitstyle": 0, "longname": "Detect Sens"}, {"c": "live.dial", "r": [980.0, 82.0, 44.0, 50.0], "varname": "Detect Min Len", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.77, 0.77, 0.78, 1.0], "mmin": -100, "mmax": 100, "initial": [0], "unitstyle": 0, "longname": "Detect Min Len"}, {"c": "live.tab", "r": [980.0, 146.0, 44.0, 15.0], "varname": "Detect Method", "fontsize": 7.0, "bgcolor": [0.165, 0.169, 0.184, 1.0], "textcolor": [0.85, 0.85, 0.85, 1.0], "bgoncolor": [0.77, 0.77, 0.78, 1.0], "activebgoncolor": [0.77, 0.77, 0.78, 1.0], "num_lines_presentation": 1, "mmin": 0, "mmax": 1, "initial": [0], "unitstyle": 9, "enum": ["Hits", "Notes"], "longname": "Detect Method"}, {"c": "live.comment", "r": [1038.0, 5.0, 97.0, 14.0], "text": "OUT", "fontsize": 9.5, "textcolor": [0.937, 0.541, 0.47, 1.0]}, {"c": "panel", "r": [1041.0, 19.0, 91.0, 2.0], "bgcolor": [0.937, 0.541, 0.47, 0.55]}, {"c": "live.dial", "r": [1041.0, 24.0, 44.0, 50.0], "varname": "Even", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.937, 0.541, 0.47, 1.0], "mmin": 0, "mmax": 100, "initial": [0], "unitstyle": 5, "longname": "Even"}, {"c": "live.dial", "r": [1088.0, 24.0, 44.0, 50.0], "varname": "Comp", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.937, 0.541, 0.47, 1.0], "mmin": 0, "mmax": 100, "initial": [0], "unitstyle": 5, "longname": "Comp"}, {"c": "jsui", "r": [1094.0, 71.0, 32.0, 3.0], "filename": "wanderer.gr.js"}, {"c": "live.dial", "r": [1041.0, 82.0, 44.0, 50.0], "varname": "Stereo", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.937, 0.541, 0.47, 1.0], "mmin": 0, "mmax": 200, "initial": [100], "unitstyle": 5, "longname": "Stereo"}, {"c": "live.dial", "r": [1088.0, 82.0, 44.0, 50.0], "varname": "Volume", "fontsize": 8.5, "textcolor": [0.925, 0.925, 0.925, 1.0], "activedialcolor": [0.937, 0.541, 0.47, 1.0], "mmin": -70, "mmax": 6, "initial": [0], "unitstyle": 4, "longname": "Volume"}, {"c": "limitslider", "r": [1041.0, 146.0, 44.0, 15.0], "new": 4}, {"c": "live.meter~", "r": [1088.0, 148.0, 44.0, 5.0]}, {"c": "live.meter~", "r": [1088.0, 155.0, 44.0, 5.0]}, {"c": "filebtn", "text": "Free", "r": [73.0, 146.0, 33.142857142857146, 15.0], "new": 0}, {"c": "filebtn", "text": "Lock", "r": [109.14285714285714, 146.0, 33.142857142857146, 15.0], "new": 0}, {"c": "filebtn", "text": "Mute", "r": [145.28571428571428, 146.0, 33.142857142857146, 15.0], "new": 0}, {"c": "filebtn", "text": "Solo", "r": [181.42857142857144, 146.0, 33.142857142857146, 15.0], "new": 1}, {"c": "filebtn", "text": "Init", "r": [217.57142857142858, 146.0, 33.142857142857146, 15.0], "new": 0}, {"c": "filebtn", "text": "Clear", "r": [253.71428571428572, 146.0, 33.142857142857146, 15.0], "new": 0}, {"c": "filebtn", "text": "Random", "r": [289.8571428571429, 146.0, 33.142857142857146, 15.0], "new": 1}, {"c": "undo", "text": "Undo", "r": [717.0, 146.0, 44.0, 15.0], "new": 2}];
+
+// ---------------------------------------------------------------- state (example session)
+const S = {
+  view: "wave",
+  names: ["kick loop.wav", "snare roll.aif", "hats 16th.wav", "perc box.wav", "vox chop.wav", "pad swell.wav"],
+  state: [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  lock: [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  mute: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  solo: new Array(16).fill(0),
+  vol: [0, -3, -7.5, -2, -9, -14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  sel: 0,
+  limit: 35,
+  undo: 3,
+  flash: {},
+  meter: new Array(16).fill(0),
+};
+
+// ---------------------------------------------------------------- drawing helpers (device coordinates, 1 = Live pixel)
+const C = (a, al) => `rgba(${Math.round(a[0] * 255)},${Math.round(a[1] * 255)},${Math.round(a[2] * 255)},${al === undefined ? (a[3] === undefined ? 1 : a[3]) : al})`;
+const TEAL = [0.31, 0.765, 0.753], LIGHT = [0.5, 0.88, 0.867], AMBER = [0.949, 0.722, 0.294], RED = [0.937, 0.47, 0.42];
+const BLUE = [0.416, 0.659, 0.941], OUT = [0.937, 0.541, 0.47], BTN = [0.165, 0.169, 0.184], INK = [0.08, 0.08, 0.08];
+const BG = [0.11, 0.114, 0.125], TXT = [0.925, 0.925, 0.925], DIM = [0.66, 0.66, 0.68], DEVBG = [0.239, 0.243, 0.255];
+const NEWC = "#f2b84b";
+const FONT = 'Archivo, "Helvetica Neue", Arial, sans-serif';
+
+function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2)); }
+function txt(g, s, x, y, size, col, align, w, weight) {
+  g.font = `${weight || 500} ${size}px ${FONT}`;
+  g.fillStyle = col;
+  g.textAlign = "left";
+  const m = g.measureText(s).width;
+  const tx = align === "c" ? x + (w - m) / 2 : align === "r" ? x + w - m : x;
+  g.fillText(s, tx, y);
+  return m;
+}
+const anySolo = () => S.solo.some(Boolean);
+const audible = f => S.state[f] === 1 && !S.mute[f] && (!anySolo() || S.solo[f]);
+
+// ---------------------------------------------------------------- the views
+function drawFiles(g, x, y, w, h) {
+  g.fillStyle = C(BG); g.fillRect(x, y, w, h);
+  txt(g, "FILES", x, y + 10, 9.5, C(TEAL), 0, 0, 600);
+  g.fillStyle = C(TEAL, .55); rr(g, x, y + 11, w, 2, 1); g.fill();
+  const HEAD = 14, cw = (w - 3) / 2, ch = (h - HEAD - 2 - 21) / 8;
+  for (let i = 0; i < 16; i++) {
+    const cx = x + (i % 2) * (cw + 3), cy = y + HEAD + 2 + Math.floor(i / 2) * (ch + 3);
+    let fg;
+    if (S.state[i] === 1) {
+      const dimmed = !audible(i);
+      g.fillStyle = C([0.122, 0.227, 0.227], dimmed ? .5 : 1); rr(g, cx, cy, cw, ch, 2.5); g.fill();
+      if (!dimmed && S.meter[i] > .25) { g.fillStyle = C(LIGHT, .35 * S.meter[i]); rr(g, cx, cy, cw, ch, 2.5); g.fill(); }
+      fg = dimmed ? C([0.43, 0.55, 0.54]) : C([0.85, 0.96, 0.96]);
+    } else {
+      g.fillStyle = C([0.133, 0.137, 0.149]); rr(g, cx, cy, cw, ch, 2.5); g.fill();
+      g.strokeStyle = C([0.24, 0.243, 0.263]); g.lineWidth = 1; rr(g, cx + .5, cy + .5, cw - 1, ch - 1, 2.5); g.stroke();
+      fg = C([0.42, 0.42, 0.44]);
+    }
+    if (i === S.sel) { g.strokeStyle = C(LIGHT); g.lineWidth = 1.5; rr(g, cx + .75, cy + .75, cw - 1.5, ch - 1.5, 2.5); g.stroke(); }
+    txt(g, String(i + 1), cx, cy + ch / 2 + 3, 8, fg, "c", cw);
+    const bar = S.solo[i] ? C(BLUE) : S.lock[i] ? C(AMBER) : S.mute[i] ? C([0.33, 0.34, 0.36]) : null;
+    if (bar) { g.fillStyle = bar; rr(g, cx + 3, cy + ch - 2.5, cw - 6, 1.5, 1); g.fill(); }
+  }
+}
+
+function tabsWaveMix(g, x, y, w) {
+  // the new switch in the header, right-aligned: [Wave][Mix]
+  const tw = 25, th = 11, tx = x + w - 2 * tw - 2, ty = y;
+  const items = [["Wave", "wave"], ["Mix", "mix"]];
+  items.forEach(([t, v], k) => {
+    const bx = tx + k * (tw + 2), on = S.view === v;
+    g.fillStyle = on ? C(TEAL) : C(BTN); rr(g, bx, ty, tw, th, 2.5); g.fill();
+    if (!on) { g.strokeStyle = C(TEAL, .7); g.lineWidth = .8; rr(g, bx + .4, ty + .4, tw - .8, th - .8, 2.5); g.stroke(); }
+    txt(g, t, bx, ty + 8.3, 7.5, on ? C(INK) : C(TEAL), "c", tw, 600);
+  });
+  return { x: tx, y: ty, w: 2 * tw + 2, h: th, tw };
+}
+
+function wavePeaks() {
+  if (wavePeaks.p) return wavePeaks.p;
+  const p = [], hits = [0, .12, .25, .31, .5, .62, .75, .81, .87, .94];
+  for (let i = 0; i < 400; i++) {
+    const t = i / 400;
+    let v = .03;
+    hits.forEach((h, k) => { if (t >= h) v = Math.max(v, (k % 4 === 0 ? .95 : k % 2 ? .45 : .7) * Math.exp(-(t - h) * (k % 4 === 0 ? 38 : 70))); });
+    v *= .85 + .15 * Math.sin(i * 1.7);
+    p.push(v, -v * .92);
+  }
+  wavePeaks.p = { p, hits };
+  return wavePeaks.p;
+}
+
+function drawWave(g, x, y, w, h) {
+  g.fillStyle = C(BG); g.fillRect(x, y, w, h);
+  const HEAD = 14;
+  const t = tabsWaveMix(g, x, y, w);
+  const f = S.sel;
+  if (S.view === "wave") {
+    txt(g, `${f + 1}  ${S.names[f] || "empty slot"}`, x, y + 10, 9.5, C(TEAL), 0, 0, 600);
+    txt(g, S.state[f] === 1 ? "10 slices" : "drop a file on the strip at the left", x, y + 10, 8, C(DIM), "r", t.x - x - 6);
+  } else {
+    txt(g, "MIX", x, y + 10, 9.5, C(TEAL), 0, 0, 600);
+    const v = S.vol[f];
+    const s = S.state[f] === 1 ? `${f + 1}  ${S.names[f]}   ${v > 0 ? "+" : ""}${v.toFixed(1)} dB` : `${f + 1}  empty slot`;
+    txt(g, s, x + 26, y + 10, 8, C(DIM));
+  }
+  g.fillStyle = C(TEAL, .55); rr(g, x, y + HEAD - 3, w, 2, 1); g.fill();
+  const ay = y + HEAD + 2, ah = h - HEAD - 2;
+  if (S.view === "wave") {
+    g.fillStyle = C([0.078, 0.082, 0.094]); rr(g, x, ay, w, ah, 3); g.fill();
+    const mid = ay + ah / 2, half = ah / 2 - 3, { p, hits } = wavePeaks(), np = p.length / 2;
+    g.beginPath(); g.moveTo(x, mid - p[0] * half);
+    for (let i = 1; i < np; i++) g.lineTo(x + i / (np - 1) * w, mid - p[i * 2] * half);
+    for (let i = np - 1; i >= 0; i--) g.lineTo(x + i / (np - 1) * w, mid - p[i * 2 + 1] * half);
+    g.closePath(); g.fillStyle = C(TEAL, .38); g.fill(); g.strokeStyle = C(LIGHT, .9); g.lineWidth = .6; g.stroke();
+    hits.forEach((hp, k) => { if (k) { g.fillStyle = "rgba(255,255,255,.3)"; g.fillRect(x + hp * w, ay, .6, ah); } });
+    g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(x + .62 * w, ay, .13 * w, ah);
+  } else drawMixer(g, x, ay, w, ah);
+}
+
+function mixGeom(x, y, w, h) {
+  const gap = 2, sw = (w - 15 * gap) / 16;
+  return { gap, sw, numY: y, numH: 10, fy: y + 13, fh: h - 13 - 27, mY: y + h - 25, sY: y + h - 12, bh: 11 };
+}
+const volToN = v => (v + 36) / 42;
+const nToVol = n => Math.round((n * 42 - 36) * 2) / 2;
+
+function drawMixer(g, x, y, w, h) {
+  const m = mixGeom(x, y, w, h);
+  for (let f = 0; f < 16; f++) {
+    const sx = x + f * (m.sw + m.gap), loaded = S.state[f] === 1, on = audible(f);
+    // number (click: select)
+    g.fillStyle = loaded ? C([0.122, 0.227, 0.227], on ? 1 : .5) : C([0.133, 0.137, 0.149]); rr(g, sx, m.numY, m.sw, m.numH, 2); g.fill();
+    if (f === S.sel) { g.strokeStyle = C(LIGHT); g.lineWidth = 1.2; rr(g, sx + .6, m.numY + .6, m.sw - 1.2, m.numH - 1.2, 2); g.stroke(); }
+    txt(g, String(f + 1), sx, m.numY + 7.6, 7, loaded ? (on ? C([0.85, 0.96, 0.96]) : C([0.43, 0.55, 0.54])) : C([0.42, 0.42, 0.44]), "c", m.sw, 600);
+    // fader
+    g.fillStyle = C([0.055, 0.055, 0.063]); rr(g, sx, m.fy, m.sw, m.fh, 2); g.fill();
+    const z = m.fy + m.fh * (1 - volToN(0));
+    g.fillStyle = "rgba(255,255,255,.18)"; g.fillRect(sx, z, m.sw, .6);
+    if (loaded) {
+      const lv = m.fy + m.fh * (1 - volToN(S.vol[f]));
+      g.fillStyle = C(TEAL, on ? .7 : .28); rr(g, sx + 1.5, lv, m.sw - 3, m.fy + m.fh - lv, 1.5); g.fill();
+      g.fillStyle = C(on ? LIGHT : DIM); g.fillRect(sx + 1, lv - .8, m.sw - 2, 1.6);
+      if (on && S.meter[f] > 0.02) {
+        const mh = (m.fy + m.fh - lv) * S.meter[f];
+        g.fillStyle = C([0.92, 1, 1], .85); g.fillRect(sx + m.sw / 2 - .5, m.fy + m.fh - mh, 1, mh);
+      }
+    }
+    // M and S
+    [["M", m.mY, S.mute[f], [0.85, 0.85, 0.85]], ["S", m.sY, S.solo[f], BLUE]].forEach(([t, by, val, col]) => {
+      g.fillStyle = val ? C(col) : C(BTN); rr(g, sx, by, m.sw, m.bh, 2); g.fill();
+      if (!val) { g.strokeStyle = C(col, loaded ? .55 : .2); g.lineWidth = .7; rr(g, sx + .35, by + .35, m.sw - .7, m.bh - .7, 2); g.stroke(); }
+      txt(g, t, sx, by + 8, 7, val ? C(INK) : C(col, loaded ? 1 : .3), "c", m.sw, 600);
+    });
+  }
+}
+
+function drawPage(g, x, y, w, h) {
+  g.fillStyle = C(BG); g.fillRect(x, y, w, h);
+  const TABS = [["Clock", [0.941, 0.376, 0.416]], ["Slice", [0.663, 0.545, 0.91]], ["Play", [0.612, 0.8, 0.353]], ["Pitch", [0.941, 0.627, 0.314]],
+    ["Env", [0.937, 0.541, 0.47]], ["Filter", [0.91, 0.8, 0.369]], ["Repeat", [0.898, 0.478, 0.659]], ["Grain", [0.498, 0.82, 0.682]], ["Detect", [0.77, 0.77, 0.78]]];
+  const TABW = 36, cur = 4, th = (h - 24) / 9, tc = TABS[cur][1];
+  TABS.forEach(([n, c], i) => {
+    const ty = y + i * (th + 3), on = i === cur;
+    g.fillStyle = on ? C(c) : C(BTN); rr(g, x, ty, TABW, th, 3); g.fill();
+    txt(g, n, x + 5, ty + th / 2 + 3.5, 8.5, on ? C(INK) : C(c));
+  });
+  const x0 = x + TABW + 4;
+  g.fillStyle = C(tc, .7); rr(g, x0, y, 2, h, 1); g.fill();
+  const px = x0 + 6, pw = x + w - px;
+  txt(g, "ENV", px, y + 10, 9.5, C(tc), 0, 0, 600);
+  g.fillStyle = C(tc, .55); rr(g, px, y + 11, pw, 2, 1); g.fill();
+  const rows = [[["Attack", "0 ms", .05], ["Decay", "10 ms", .2], ["Gate", "100 %", 1]], [["Volume", fmtDb(S.vol[S.sel]), volToN(S.vol[S.sel])], ["Pan", "C", .5], ["Width", "100 %", .5]]];
+  rows.forEach((row, r) => row.forEach(([n, v, a], k) => dialAt(g, px + k * 43, y + 16 + r * 62, n, v, a, tc, n === "Volume")));
+  const sy = y + h - 15, bw = 83;
+  g.fillStyle = C(BTN); rr(g, px, sy, bw, 15, 7.5); g.fill();
+  g.strokeStyle = C(tc); g.lineWidth = 1; rr(g, px + .5, sy + .5, bw - 1, 14, 7.5); g.stroke();
+  txt(g, "Random env", px, sy + 10.5, 8.5, C(tc), "c", bw);
+}
+const fmtDb = v => `${v > 0 ? "+" : ""}${v.toFixed(1)} dB`;
+
+function dialAt(g, x, y, name, val, n, col, hl) {
+  const cx = x + 22, cy = y + 24, r = 10.5;
+  txt(g, name, x - 4, y + 8, 8.5, C(TXT), "c", 52);
+  g.lineCap = "round"; g.lineWidth = 3;
+  const a0 = -225 * Math.PI / 180, a1 = 45 * Math.PI / 180, av = a0 + (a1 - a0) * n;
+  g.strokeStyle = C([0.055, 0.055, 0.063]); g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke();
+  g.strokeStyle = C(col); g.beginPath(); g.arc(cx, cy, r, a0, Math.max(a0 + .001, av)); g.stroke();
+  g.lineWidth = 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(av) * (r - 2.5), cy + Math.sin(av) * (r - 2.5)); g.stroke();
+  g.lineCap = "butt";
+  txt(g, val, x - 4, y + 45, 8, C(TXT, hl ? 1 : .85), "c", 52);
+}
+
+function drawMemory(g, x, y, w, h) {
+  const VIOLET = [0.663, 0.545, 0.91];
+  g.fillStyle = C(BG); g.fillRect(x, y, w, h);
+  txt(g, "MEMORY", x, y + 10, 9.5, C(VIOLET), 0, 0, 600);
+  g.fillStyle = C(VIOLET, .55); rr(g, x, y + 11, w, 2, 1); g.fill();
+  const cw = (w - 3) / 2, ch = (h - 16 - 9) / 4, used = [1, 1, 1, 0, 0, 0, 0, 0];
+  for (let i = 0; i < 8; i++) {
+    const cx = x + (i % 2) * (cw + 3), cy = y + 16 + Math.floor(i / 2) * (ch + 3);
+    g.fillStyle = used[i] ? C([0.176, 0.157, 0.251]) : C([0.133, 0.137, 0.149]); rr(g, cx, cy, cw, ch, 3); g.fill();
+    g.strokeStyle = used[i] ? C([0.365, 0.31, 0.549]) : C([0.24, 0.243, 0.263]); g.lineWidth = 1; rr(g, cx + .5, cy + .5, cw - 1, ch - 1, 3); g.stroke();
+    if (i === 1) { g.strokeStyle = C([0.89, 0.85, 1]); g.lineWidth = 1.5; rr(g, cx + .75, cy + .75, cw - 1.5, ch - 1.5, 3); g.stroke(); }
+    txt(g, String(i + 1), cx, cy + ch / 2 + 3.2, 9, used[i] ? C([0.89, 0.85, 1]) : C([0.42, 0.42, 0.44]), "c", cw);
+  }
+}
+
+// ---------------------------------------------------------------- Live objects
+function fmtDial(b) {
+  const v = Array.isArray(b.initial) ? b.initial[0] : 0, u = b.unitstyle;
+  if (u === 5) return `${Math.round(v)} %`;
+  if (u === 4) return `${v.toFixed(1)} dB`;
+  if (u === 7) return `${v} st`;
+  return String(Math.round(v));
+}
+const TABCOL = { "Quant To": BLUE, "Lock Mode": AMBER, "Lock Bars": AMBER, "Detect Method": [0.77, 0.77, 0.78] };
+
+function drawBox(g, b) {
+  const [x, y, w, h] = b.r;
+  switch (b.c) {
+    case "panel":
+      g.fillStyle = C(b.bgcolor || BG); rr(g, x, y, w, h, h > 10 ? 6 : 1); g.fill(); break;
+    case "live.comment":
+      txt(g, b.text, x, y + (b.fontsize || 8.5) + 0.5, b.fontsize || 8.5, C(b.textcolor || TXT), 0, 0, (b.fontsize || 0) > 9 ? 600 : 500); break;
+    case "live.dial": {
+      const lo = b.mmin, hi = b.mmax, v = Array.isArray(b.initial) ? b.initial[0] : 0;
+      dialAt(g, x, y, b.varname, fmtDial(b), (v - lo) / (hi - lo), b.activedialcolor || TXT);
+      break;
+    }
+    case "live.tab": {
+      const items = b.enum || [], n = items.length, rows = b.num_lines_presentation || 1, per = Math.ceil(n / rows);
+      const cw = w / per, chh = h / rows, sel = Array.isArray(b.initial) ? b.initial[0] : 0, col = TABCOL[b.varname] || TEAL;
+      items.forEach((t, i) => {
+        const cx = x + (i % per) * cw, cy = y + Math.floor(i / per) * chh, on = i === sel;
+        g.fillStyle = on ? C(col) : C(BTN); rr(g, cx + .5, cy + .5, cw - 1, chh - 1, 2); g.fill();
+        txt(g, t, cx, cy + chh / 2 + 2.7, b.fontsize || 7.5, on ? C(INK) : C([0.85, 0.85, 0.85]), "c", cw);
+      });
+      break;
+    }
+    case "live.text": {
+      const toggle = b.mode === 1, on = toggle && Array.isArray(b.initial) && b.initial[0] === 1;
+      button(g, x, y, w, h, b.text, b.bordercolor || [0.6, 0.6, 0.6], on, toggle, b.fontsize || 8.5);
+      break;
+    }
+    case "live.menu": {
+      g.fillStyle = C(BTN); rr(g, x, y, w, h, 2); g.fill();
+      const sel = Array.isArray(b.initial) ? b.initial[0] : 0;
+      txt(g, (b.enum || [""])[sel] || "", x + 4, y + h / 2 + 3, 8, C(TXT));
+      g.fillStyle = C(b.arrowcolor || TXT); g.beginPath(); g.moveTo(x + w - 9, y + 5); g.lineTo(x + w - 3, y + 5); g.lineTo(x + w - 6, y + 9); g.closePath(); g.fill();
+      break;
+    }
+    case "live.numbox": {
+      g.fillStyle = C([0.055, 0.055, 0.063]); rr(g, x, y, w, h, 2); g.fill();
+      g.fillStyle = C(b.activeslidercolor || BLUE, .35); rr(g, x, y, w, h, 2); g.fill();
+      txt(g, "100 %", x, y + h / 2 + 3, 8, C(TXT), "c", w);
+      break;
+    }
+    case "live.meter~": {
+      g.fillStyle = C([0.055, 0.055, 0.063]); g.fillRect(x, y, w, h);
+      const lv = (b.r[1] < 150 ? .62 : .58) * (0.7 + 0.3 * S.meter[0]);
+      const grd = g.createLinearGradient(x, 0, x + w, 0);
+      grd.addColorStop(0, C([0.612, 0.8, 0.353])); grd.addColorStop(.75, C(AMBER)); grd.addColorStop(1, C(OUT));
+      g.fillStyle = grd; g.fillRect(x, y, w * lv, h);
+      break;
+    }
+    case "live.drop":
+      g.fillStyle = C([0.133, 0.137, 0.149]); rr(g, x, y, w, h, 3); g.fill();
+      g.setLineDash([2, 2]); g.strokeStyle = C(TEAL, .8); g.lineWidth = 1; rr(g, x + .5, y + .5, w - 1, h - 1, 3); g.stroke(); g.setLineDash([]);
+      txt(g, "Drop", x, y + h / 2 + 3, 8, C(TEAL), "c", w);
+      break;
+    case "jsui": {
+      const fn = b.filename;
+      if (fn === "wanderer.files.js") drawFiles(g, x, y, w, h);
+      else if (fn === "wanderer.wave.js") drawWave(g, x, y, w, h);
+      else if (fn === "wanderer.page.js") drawPage(g, x, y, w, h);
+      else if (fn === "wanderer.memory.js") drawMemory(g, x, y, w, h);
+      else if (fn === "wanderer.gr.js") {
+        g.fillStyle = C([0.055, 0.055, 0.063]); g.fillRect(x, y, w, h);
+        const gr = Math.min(1, .1 + Math.max(0, S.limit - 10) / 110);
+        g.fillStyle = C(OUT); g.fillRect(x + w * (1 - gr), y, w * gr, h);
+      }
+      break;
+    }
+    case "filebtn": {
+      const t = b.text, f = S.sel;
+      let on = false, col = [0.85, 0.85, 0.85], toggle = true;
+      if (t === "Free") { on = !S.lock[f]; col = TEAL; }
+      else if (t === "Lock") { on = !!S.lock[f]; col = AMBER; }
+      else if (t === "Mute") on = !!S.mute[f];
+      else if (t === "Solo") { on = !!S.solo[f]; col = BLUE; }
+      else if (t === "Random") { col = TEAL; toggle = false; }
+      else toggle = false;
+      button(g, x, y, w, h, t, col, on, toggle, 8.5, S.flash[t]);
+      break;
+    }
+    case "undo": {
+      const en = S.undo > 0;
+      g.globalAlpha = en ? 1 : .35;
+      button(g, x, y, w, h, "Undo", [0.75, 0.75, 0.77], false, false, 8.5, S.flash.Undo);
+      g.globalAlpha = 1;
+      break;
+    }
+    case "limitslider": {
+      g.fillStyle = C([0.055, 0.055, 0.063]); rr(g, x, y, w, h, 2); g.fill();
+      const n = S.limit / 100;
+      g.fillStyle = C(OUT, S.limit > 0 ? .45 : 0); rr(g, x, y, Math.max(0.01, w * n), h, 2); g.fill();
+      g.fillStyle = C(OUT); g.fillRect(x + w * n - .75, y, 1.5, h);
+      txt(g, S.limit === 0 ? "Limit off" : `Limit ${S.limit}`, x, y + h / 2 + 3, 8, C(TXT), "c", w, 600);
+      break;
+    }
+  }
+}
+
+function button(g, x, y, w, h, t, col, on, toggle, fs, flash) {
+  g.fillStyle = on ? C(col) : flash ? C(col, .35) : C(BTN); rr(g, x, y, w, h, 3); g.fill();
+  g.strokeStyle = C(col, .9); g.lineWidth = .8; rr(g, x + .4, y + .4, w - .8, h - .8, 3); g.stroke();
+  txt(g, t, x, y + h / 2 + 3, fs, on ? C(INK) : C(toggle ? [0.85, 0.85, 0.85] : col), "c", w, 500);
+}
+
+// ---------------------------------------------------------------- views onto the device
+const DEV_W = 1144, DEV_H = 169;
+const views = [];
+function makeView(id, region, zoom, markers, forceMix) {
+  const cv = document.getElementById(id), [rx, ry, rw, rh] = region;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  cv.width = Math.round(rw * zoom * dpr); cv.height = Math.round(rh * zoom * dpr);
+  cv.style.width = rw * zoom + "px"; cv.style.height = rh * zoom + "px";
+  const v = { cv, g: cv.getContext("2d"), region, zoom, dpr, markers, forceMix };
+  views.push(v);
+  cv.addEventListener("pointerdown", e => pointer(v, e));
+  cv.addEventListener("dblclick", e => dbl(v, e));
+  return v;
+}
+function render(v) {
+  const { g, region: [rx, ry, rw, rh], zoom, dpr } = v;
+  const keep = S.view;
+  if (v.forceMix) S.view = "mix";
+  g.setTransform(dpr * zoom, 0, 0, dpr * zoom, -rx * dpr * zoom, -ry * dpr * zoom);
+  g.fillStyle = C(DEVBG); g.fillRect(rx, ry, rw, rh);
+  BOXES.forEach(b => drawBox(g, b));
+  S.view = keep;
+  if (!v.markers) return;
+  const pins = [];
+  BOXES.forEach(b => {
+    if (!b.new) return;
+    const [x, y, w, h] = b.r;
+    g.strokeStyle = NEWC; g.lineWidth = 1.2; rr(g, x - 1.5, y - 1.5, w + 3, h + 3, 4); g.stroke();
+    pins.push([b.new, x + w - 2, y - 2]);
+  });
+  const [wx, wy, ww] = WAVE;
+  g.strokeStyle = NEWC; g.lineWidth = 1.2; rr(g, wx + ww - 53.5, wy - 1.5, 55, 14, 4); g.stroke();
+  pins.push([3, wx + ww - 55, wy + 1]);
+  pins.forEach(([n, x, y]) => {
+    g.fillStyle = NEWC; g.beginPath(); g.arc(x, y, 5.5, 0, Math.PI * 2); g.fill();
+    txt(g, String(n), x - 5.5, y + 3, 7.5, "#1b1b1b", "c", 11, 700);
+  });
+}
+function renderAll() { views.forEach(render); }
+
+// ---------------------------------------------------------------- interaction
+function devPoint(v, e) {
+  const r = v.cv.getBoundingClientRect();
+  return [v.region[0] + (e.clientX - r.left) / v.zoom, v.region[1] + (e.clientY - r.top) / v.zoom];
+}
+const inR = (p, x, y, w, h) => p[0] >= x && p[0] <= x + w && p[1] >= y && p[1] <= y + h;
+var WAVE = BOXES.find(b => b.filename === "wanderer.wave.js").r;
+function flash(k) { S.flash[k] = 1; renderAll(); setTimeout(() => { S.flash[k] = 0; renderAll(); }, 160); }
+
+function pointer(v, e) {
+  const p = devPoint(v, e);
+  const [wx, wy, ww, wh] = WAVE;
+  // Wave / Mix switch
+  const tx = wx + ww - 52;
+  if (inR(p, tx, wy, 25, 11)) { S.view = "wave"; return renderAll(); }
+  if (inR(p, tx + 27, wy, 25, 11)) { S.view = "mix"; return renderAll(); }
+  if (S.view === "mix" && inR(p, wx, wy + 16, ww, wh - 16)) {
+    const m = mixGeom(wx, wy + 16, ww, wh - 16), f = Math.min(15, Math.floor((p[0] - wx) / (m.sw + m.gap)));
+    if (p[1] < m.numY + m.numH) { S.sel = f; return renderAll(); }
+    if (p[1] >= m.sY) { if (S.state[f] === 1) S.solo[f] ^= 1; return renderAll(); }
+    if (p[1] >= m.mY) { if (S.state[f] === 1) S.mute[f] ^= 1; return renderAll(); }
+    if (S.state[f] !== 1) return;
+    S.sel = f;
+    const set = q => { S.vol[f] = Math.max(-36, Math.min(6, nToVol(1 - (q[1] - m.fy) / m.fh))); renderAll(); };
+    set(p); drag(v, set);
+    return;
+  }
+  // file grid: select
+  const fb = BOXES.find(b => b.filename === "wanderer.files.js").r;
+  if (inR(p, ...fb)) {
+    const cw = (fb[2] - 3) / 2, ch = (fb[3] - 37) / 8;
+    const col = Math.floor((p[0] - fb[0]) / (cw + 3)), row = Math.floor((p[1] - fb[1] - 16) / (ch + 3));
+    if (row >= 0 && row < 8) { S.sel = row * 2 + Math.min(1, col); renderAll(); }
+    return;
+  }
+  for (const b of BOXES) {
+    if (!inR(p, ...b.r)) continue;
+    const f = S.sel;
+    if (b.c === "filebtn") {
+      if (S.state[f] !== 1 && b.text !== "Random") return;
+      if (b.text === "Mute") S.mute[f] ^= 1;
+      else if (b.text === "Solo") S.solo[f] ^= 1;
+      else if (b.text === "Lock") S.lock[f] = 1;
+      else if (b.text === "Free") S.lock[f] = 0;
+      else { if (b.text === "Random" || b.text === "Init") S.undo = Math.min(8, S.undo + 1); flash(b.text); }
+      return renderAll();
+    }
+    if (b.c === "undo") { if (S.undo > 0) { S.undo--; flash("Undo"); } return renderAll(); }
+    if (b.c === "live.text" && b.text === "Random all") { S.undo = Math.min(8, S.undo + 1); return renderAll(); }
+    if (b.c === "limitslider") {
+      const set = q => { S.limit = Math.round(Math.max(0, Math.min(100, (q[0] - b.r[0]) / b.r[2] * 100))); renderAll(); drawCurve(); };
+      set(p); drag(v, set);
+      return;
+    }
+  }
+}
+function drag(v, set) {
+  const move = e => set(devPoint(v, e));
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+function dbl(v, e) {
+  const p = devPoint(v, e), [wx, wy, ww, wh] = WAVE;
+  if (S.view === "mix" && inR(p, wx, wy + 16, ww, wh - 16)) {
+    const m = mixGeom(wx, wy + 16, ww, wh - 16), f = Math.min(15, Math.floor((p[0] - wx) / (m.sw + m.gap)));
+    if (p[1] > m.fy && p[1] < m.fy + m.fh && S.state[f] === 1) { S.vol[f] = 0; renderAll(); }
+  }
+}
+
+// ---------------------------------------------------------------- the Limit curve (static peaks, approximate)
+function limitParams(v) {
+  if (v === 0) return { on: false };
+  const push = Math.max(0, v - 10) / 90;
+  return { on: true, drive: 18 * push, rel: 80 - 65 * push, clip: Math.max(0, (v - 75) / 25) };
+}
+function outPeak(inDb, P) {
+  if (!P.on) return inDb;
+  // a soft knee into the ceiling; clipping widens the knee (rounder, grittier)
+  const x = inDb + P.drive, ceil = -0.3, knee = 2 + 8 * P.clip;
+  if (x <= ceil - knee) return x;
+  if (x >= ceil + knee) return ceil;
+  return x - (x - (ceil - knee)) ** 2 / (4 * knee);
+}
+function drawCurve() {
+  const P = limitParams(S.limit), ro = document.getElementById("limitReadout");
+  ro.innerHTML = !P.on ? "<span>Limit off <em>· nothing on the output</em></span>"
+    : `<span><em>Push</em> +${P.drive.toFixed(1)} dB</span><span><em>Let go</em> ${Math.round(P.rel)} ms</span><span><em>Clipping</em> ${Math.round(P.clip * 100)} %</span><span><em>Ceiling</em> −0.3 dB</span>`;
+  const cv = document.getElementById("curve"), dpr = Math.max(1, window.devicePixelRatio || 1);
+  const W = cv.clientWidth || 420, H = W * 200 / 420;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const L = 40, R = 12, T = 10, B = 28, lo = -30, hi = 0;
+  const X = d => L + (d - lo) / (hi - lo) * (W - L - R), Y = d => T + (hi - d) / (hi - lo) * (H - T - B);
+  g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--surface"); g.fillRect(0, 0, W, H);
+  g.font = `11px ${getComputedStyle(document.documentElement).getPropertyValue("--font-mono")}`;
+  for (let d = -30; d <= 0; d += 6) {
+    g.strokeStyle = "rgba(255,255,255,.07)"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(X(d), T); g.lineTo(X(d), H - B); g.moveTo(L, Y(d)); g.lineTo(W - R, Y(d)); g.stroke();
+    g.fillStyle = "#a7a8ad";
+    g.textAlign = "center"; g.fillText(String(d), X(d), H - B + 15);
+    g.textAlign = "right"; g.fillText(String(d), L - 6, Y(d) + 4);
+  }
+  g.textAlign = "center"; g.fillText("peak into Limit, dB", L + (W - L - R) / 2, H - 2);
+  g.save(); g.translate(11, T + (H - T - B) / 2); g.rotate(-Math.PI / 2); g.fillText("out, dB", 0, 0); g.restore();
+  // ceiling
+  g.setLineDash([3, 3]); g.strokeStyle = "rgba(239,138,120,.6)"; g.beginPath(); g.moveTo(L, Y(-0.3)); g.lineTo(W - R, Y(-0.3)); g.stroke(); g.setLineDash([]);
+  // today (10) for reference, then the current setting
+  const line = (PP, col, w) => {
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath();
+    for (let i = 0; i <= 120; i++) { const d = lo + (hi - lo) * i / 120, o = Math.max(lo, outPeak(d, PP)); i ? g.lineTo(X(d), Y(o)) : g.moveTo(X(d), Y(o)); }
+    g.stroke();
+  };
+  line(limitParams(10), "rgba(167,168,173,.55)", 1.2);
+  line(P, "#ef8a78", 2.4);
+  g.textAlign = "left"; g.fillStyle = "#a7a8ad"; g.fillText("grey: 10 (today)", L + 8, T + 14);
+}
+
+// ---------------------------------------------------------------- start
+makeView("full", [0, 0, DEV_W, DEV_H], 1.4, true);
+makeView("z1", [6, 4, 324, 161], 2.2, true);
+makeView("z2", [566, 4, 295, 161], 2.2, true);
+makeView("z3", [67, 4, 262, 161], 2.2, false, true);
+makeView("z4", [1035, 4, 103, 161], 2.6, true);
+function redraw() { views.forEach(render); }
+redraw();
+// gentle activity on the meters (off with reduced motion)
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const beat = [1, 0, .5, 0, .8, 0, .5, .2];
+let step = 0;
+function tick() {
+  for (let f = 0; f < 16; f++) {
+    if (S.state[f] !== 1) { S.meter[f] = 0; continue; }
+    const hit = (step + f * 3) % 8;
+    S.meter[f] = Math.max(S.meter[f] * 0.72, beat[hit] * (0.55 + 0.45 * Math.random()) * ((step + f) % 2 ? 1 : 0.6));
+  }
+  step++;
+  redraw();
+}
+if (still) { S.meter = S.meter.map((_, f) => S.state[f] === 1 ? .6 : 0); redraw(); } else setInterval(tick, 120);
+drawCurve();
+window.addEventListener("resize", drawCurve);
+</script>

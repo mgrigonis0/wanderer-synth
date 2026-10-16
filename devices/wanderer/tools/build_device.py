@@ -94,13 +94,15 @@ TXT = (0.925, 0.925, 0.925)
 INFO = {
     "files": "The 16 file slots. Click one to show and edit it. Teal = loaded, red = not found (click to find it), amber bar = locked, grey bar = muted.",
     "drop": "Drop audio files here. A file goes into the selected slot if it is empty, otherwise into the next empty one.",
-    "wave": "The selected file and its slices. Click a slice: switch it off or on. In Weighted order, drag up or down in a slice to set how often it plays.",
+    "wave": "Wave: the selected file and its slices. Click a slice: switch it off or on. In Weighted order, drag up or down in a slice to set how often it plays. Mix: every file's Volume as a fader (double-click: 0 dB), with Mute (M) and Solo (S); click a number to select the file.",
     "page": "The selected file's settings. Left: the tabs. Drag a dial: its value. Drag its thin outer ring: how much it varies on every hit (scaled by Chaos). Click the text under a dial: fixed, rnd (a new value each hit) or walk (drifts from hit to hit). Double-click: default. Shift: fine.",
     "flock": "Free: this file keeps inventing new hits. Lock: it repeats the last bars it played as a loop (Bars sets the length).",
     "fmute": "Silences this file (it keeps its place in time).",
+    "fsolo": "Only soloed files play (several can be soloed). The others keep their place in time.",
+    "undo": "Steps back one change made by Random all, Random file, Random <tab>, Init or recalling a memory slot (the last 8).",
     "finit": "This file's settings back to their defaults (its slicing stays).",
     "fclear": "Empties this slot.",
-    "frand": "New random settings for this file (Depth: Random All's). If it is locked, it also gets a fresh loop.",
+    "frand": "New random settings for this file (Depth: Random All's). If it is locked, it also gets a fresh loop. Undo steps back.",
     "quant": "How tightly hits are pulled onto the grid set by Quant to. 0 = loose (swing and feel as set), 100 = on the grid, straight.",
     "gdensity": "More or fewer hits for every file. Below 0 some hits become rests, so the rhythm keeps its shape.",
     "glen": "Every sound fuller (+) or shorter (-): Start, Length, Gate and release together.",
@@ -132,7 +134,7 @@ INFO = {
     "comp": "Glues the output: more = lower threshold, higher ratio, matching make-up. The bar shows the gain reduction.",
     "stereo": "Stereo width of the whole output: 0 = mono, 100 % = as is, 200 % = extra wide.",
     "volume": "Output level.",
-    "limit": "A soft limiter at the end: the output never goes over -0.3 dB.",
+    "limit": "0 = off. 10 = a safety catch. Higher pushes the mix harder into the limiter: louder and denser; from 75 it adds soft clipping. The output never goes over -0.3 dB.",
 }
 
 
@@ -189,7 +191,7 @@ for k in range(NSTORE):
     wire(pattr, 0, pre, 0); wire(pre, 0, eng, 0)
 
 # engine -> patch
-route = obj("route fstate cleararm gset relink", (200, 400, 220, 22), ins=2, outs=5)
+route = obj("route fstate cleararm gset relink undo", (200, 400, 250, 22), ins=2, outs=6)
 wire(eng, 2, route, 0)
 odlg = obj("opendialog sound", (440, 430, 100, 22), ins=1, outs=2)
 prl = obj("prepend relinkpath", (440, 460, 110, 22))
@@ -331,9 +333,10 @@ tfree = obj("t b", (1500, 575, 24, 22), outtypes=["bang"]); tlock = obj("t b", (
 wire(ffree, 0, tfree, 0); wire(tfree, 0, mfree, 0); wire(mfree, 0, eng, 0)
 wire(flockb, 0, tlock, 0); wire(tlock, 0, mlock, 0); wire(mlock, 0, eng, 0)
 button("fmute", "Mute", ((wx + 2 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), toggle=True, param=False, at=(0, 40))
-button("finit", "Init", ((wx + 3 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(80, 40))
-button("fclear", "Clear", ((wx + 4 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(160, 40))
-button("frand", "Random file", ((wx + 5 * (WC + 3)), STRIP_Y, 2 * WC + 3, SH), C["teal"], param=False, at=(240, 40))
+button("fsolo", "Solo", ((wx + 3 * (WC + 3)), STRIP_Y, WC, SH), C["groove"], toggle=True, param=False, at=(320, 40))
+button("finit", "Init", ((wx + 4 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(80, 40))
+button("fclear", "Clear", ((wx + 5 * (WC + 3)), STRIP_Y, WC, SH), (0.85, 0.85, 0.85), param=False, at=(160, 40))
+button("frand", "Random", ((wx + 6 * (WC + 3)), STRIP_Y, WC, SH), C["teal"], param=False, longn="Random file", at=(240, 40))
 
 # ---- the per-file page ----
 pgx = PX["page"] + IP
@@ -391,6 +394,7 @@ ctl["rdall"] = rd
 bang_at_init.append(rd)
 to_engine("rdall", rd, 1700, 630)
 clearall = button("clearall", "Clear all", (cellx("master", 2, S0), STRIP_Y, CELL, SH), (0.75, 0.75, 0.77), at=(80, 300))
+undob = button("undo", "Undo", (cellx("master", 0, S0), STRIP_Y, CELL, SH), (0.75, 0.75, 0.77), at=(160, 300))
 
 # ---- memory ----
 mx = PX["memory"] + IP
@@ -426,7 +430,16 @@ gr = box("jsui", (900, 500, 30, 5), ins=1, outs=0, pres=(cellx("out", 1) + 6, RO
          filename="wanderer.gr.js", parameter_enable=0, border=0)
 dial("stereo", "Stereo", "Stereo", 0, 200, 100, 5, C["out"], (cellx("out", 0), ROWB, CELL, DH), at=(660, 0))
 dial("volume", "Volume", "Volume", -70, 6, 0, 4, C["out"], (cellx("out", 1), ROWB, CELL, DH), at=(720, 0))
-button("limit", "Limit", (cellx("out", 0), STRIP_Y, CELL, SH), C["out"], toggle=True, init=1, at=(320, 300))
+# Limit: a slider (0 off, 10 safety catch, up to 100 pushed hard). Its own parameter name, so sets saved with the old
+# on/off button open at the default instead of reading "on" (1) as 1 %.
+lim = box("live.numbox", (1760, 600, 44, 15), ins=1, outs=2, outtypes=["", "float"],
+          pres=(cellx("out", 0), STRIP_Y, CELL, SH), varname="Limiter", parameter_enable=1,
+          **info("limit", "Limiter"), fontsize=8.0, activeslidercolor=rgba(C["out"]), textcolor=rgba(TXT),
+          bordercolor=rgba(BTN), appearance=1,
+          saved_attribute_attributes=valueof("Limiter", "Limit", 1, 0, 100, 10, 9, units="Limit %d"))
+ctl["limit"] = lim
+bang_at_init.append(lim)
+to_engine("limit", lim, 1760, 630)
 for k in range(2):
     mt = box("live.meter~", (1000 + 40 * k, 360, 30, 6), ins=1, outs=1, outtypes=["list"],
              pres=(cellx("out", 1), STRIP_Y + 2 + k * 7, CELL, 5), orientation=1, parameter_enable=0,
@@ -442,11 +455,16 @@ for d in bang_at_init:
     wire(tinit, 2, d, 0)
 
 # per-file buttons follow the selected file: "fstate <lock> <mute>"
-unp = obj("unpack 0 0", (200, 440, 60, 22), ins=1, outs=2)
-s1 = obj("prepend set", (200, 470, 80, 22)); s2 = obj("prepend set", (290, 470, 80, 22))
+unp = obj("unpack 0 0 0", (200, 440, 70, 22), ins=1, outs=3)
+s1 = obj("prepend set", (200, 470, 80, 22)); s2 = obj("prepend set", (290, 470, 80, 22)); s3 = obj("prepend set", (380, 470, 80, 22))
 inv = obj("expr 1 - $i1", (110, 470, 70, 22)); s0 = obj("prepend set", (110, 500, 80, 22))
-wire(route, 0, unp, 0); wire(unp, 0, s1, 0); wire(unp, 1, s2, 0); wire(unp, 0, inv, 0); wire(inv, 0, s0, 0)
-wire(s1, 0, flockb, 0); wire(s0, 0, ffree, 0); wire(s2, 0, ctl["fmute"], 0)
+wire(route, 0, unp, 0); wire(unp, 0, s1, 0); wire(unp, 1, s2, 0); wire(unp, 2, s3, 0); wire(unp, 0, inv, 0); wire(inv, 0, s0, 0)
+wire(s1, 0, flockb, 0); wire(s0, 0, ffree, 0); wire(s2, 0, ctl["fmute"], 0); wire(s3, 0, ctl["fsolo"], 0)
+# Undo is greyed out when there is nothing to undo ("undo <steps>")
+usel = obj("sel 0", (480, 440, 40, 22), ins=2, outs=2, outtypes=["bang", ""])
+ugrey = msg("textcolor 0.75 0.75 0.77 0.35, bordercolor 0.75 0.75 0.77 0.3", (480, 470, 300, 22))
+uon = msg("textcolor 0.75 0.75 0.77 1., bordercolor 0.75 0.75 0.77 0.9", (480, 500, 300, 22))
+wire(route, 4, usel, 0); wire(usel, 0, ugrey, 0); wire(usel, 1, uon, 0); wire(ugrey, 0, undob, 0); wire(uon, 0, undob, 0)
 # Clear All asks to be pressed again
 sel = obj("sel 1 0", (300, 440, 60, 22), ins=3, outs=3, outtypes=["bang", "bang", ""])
 m1 = msg("text Sure?", (300, 500, 70, 22)); m0 = msg("text Clear all", (380, 500, 80, 22))
