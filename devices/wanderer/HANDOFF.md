@@ -11,9 +11,10 @@ Mutate, 8 memory slots with Slide, global Quant, Allow switches, and an output c
 ## Current state
 - Build **2026-10-16a** (console: `wanderer~ 2026-10-16a (engine) ready` and `wanderer: patch 2026-10-16a`).
   Offline tests all pass, 0 warnings; pushed, CI green, release `wanderer-latest`.
-- Working in Live: drop a file, slicing, playback, UI (approved layout), buttons, Allow switches incl. Buzz and Rep, and
-  **saving: everything comes back after saving the set and reopening it (16a, confirmed by the user).**
-- Not yet tested in Live: Lock, Store/recall, Mutate, two Wanderers side by side, long sessions.
+- **Everything verified in Live (16a):** drop, slicing, playback, UI (approved layout), buttons, Allow switches incl.
+  Buzz and Rep, Lock, Store/recall, Slide, Mutate (no clicks), two Wanderers side by side (no crosstalk), and saving:
+  everything comes back after saving the set and reopening it.
+- Not yet tested: very long sessions (hours).
 
 ## Structure
 - `source/engine/` (header-only C++17, no Max deps): `params.h` (param table `PDEF`, scales), `types.h` (slice table,
@@ -79,6 +80,5 @@ blobs, Stored Only, no initial value).
 - Live's undo of a save step is not followed (the device keeps what plays and saves it again).
 
 ## Next step
-Live tests not done yet: Lock, Store/recall with Slide, Mutate over a long session, two Wanderers side by side
-(each must reopen with its own files and slots). If saving ever fails: console lines `state: …`, and INSTALL.md
-"Checking a set file" (`<BlobSlot>` of State / Mem n).
+No open task: the device is complete as designed. Ask the user what to work on next. If saving ever fails: console
+lines `state: …`, and INSTALL.md "Checking a set file" (`<BlobSlot>` of State / Mem n).
